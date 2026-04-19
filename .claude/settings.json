@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"$UserPayload\\\\|UserPayload\" \"/c/wamp64/www/fttddwa/node_modules/.prisma/client/index.d.ts\")",
+      "Bash(npx tsc:*)",
+      "Bash(find /c/wamp64/www/fttddwa -type f -name *swagger* -o -name *openapi* -o -name *api-spec*)"
+    ],
+    "additionalDirectories": [
+      "C:\\wamp64\\www\\fttddwa\\src\\app\\api\\members\\[id]"
+    ]
+  }
+}

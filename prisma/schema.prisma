@@ -1,0 +1,389 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextIndex", "fullTextSearch"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(50)
+  displayName String   @db.VarChar(100)
+  description String?  @db.Text
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  users       User[]
+  permissions RolePermission[]
+
+  @@index([name])
+  @@map("roles")
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  displayName String   @db.VarChar(150)
+  resource    String   @db.VarChar(50)
+  action      String   @db.VarChar(50)
+  description String?  @db.Text
+  createdAt   DateTime         @default(now())
+  roles       RolePermission[]
+
+  @@index([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       Int
+  permissionId Int
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  role         Role       @relation(fields: [roleId], references: [id])
+
+  @@id([roleId, permissionId])
+  @@index([permissionId], map: "role_permissions_permissionId_fkey")
+  @@map("role_permissions")
+}
+
+model User {
+  id               Int        @id @default(autoincrement())
+  name             String     @db.VarChar(150)
+  email            String     @unique
+  uniqueId         String?    @unique @db.VarChar(20)
+  passwordHash     String     @db.VarChar(255)
+  roleId           Int
+  isActive         Boolean    @default(true)
+  lastLoginAt      DateTime?
+  failedLoginCount Int        @default(0)
+  lockedUntil      DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+  isDeleted        Boolean    @default(false)
+  status           UserStatus @default(ACTIVE)
+  role             Role       @relation(fields: [roleId], references: [id])
+  auditLogs        AuditLog[]
+  membersCreated   Member[]   @relation("CreatedBy")
+  membersUpdated   Member[]   @relation("UpdatedBy")
+  sessions         Session[]
+
+  @@index([email])
+  @@index([roleId])
+  @@map("users")
+}
+
+model Session {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  refreshToken String    @unique
+  user         User      @relation(fields: [userId], references: [id])
+  ipAddress    String?   @db.VarChar(45)
+  userAgent    String?   @db.Text
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Member {
+  id                Int          @id @default(autoincrement())
+  membershipId      String       @unique @db.VarChar(20)
+  name              String       @db.VarChar(200)
+  nameTamil         String?      @db.VarChar(200)
+  position          String?      @db.VarChar(100)
+  aadhaarHash       String?      @db.VarChar(512)
+  address           String       @db.Text
+  district          String       @db.VarChar(100)
+  taluk             String       @db.VarChar(100)
+  industry          String?      @db.VarChar(150)
+  dateOfBirth       DateTime?
+  phone             String       @db.VarChar(15)
+  email             String?      @db.VarChar(255)
+  photoUrl          String?      @db.VarChar(500)
+  status            MemberStatus @default(ACTIVE)
+  joinedAt          DateTime     @default(now())
+  createdById       Int?
+  updatedById       Int?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  deletedAt         DateTime?
+  weddingDate       DateTime?
+  businessName      String?      @db.VarChar(200)
+  businessNameTamil String?      @db.VarChar(200)
+  remark            String?      @db.Text
+  notifyBirthday    Boolean      @default(true)
+  notifyWedding     Boolean      @default(true)
+  state             String       @default("Tamil Nadu") @db.VarChar(100)
+  village           String?      @db.VarChar(150)
+  createdBy         User?        @relation("CreatedBy", fields: [createdById], references: [id])
+  updatedBy         User?        @relation("UpdatedBy", fields: [updatedById], references: [id])
+  whatsappLogs      WhatsappLog[]
+
+  @@index([district])
+  @@index([taluk])
+  @@index([phone])
+  @@index([status])
+  @@index([membershipId])
+  @@index([createdById], map: "members_createdById_fkey")
+  @@fulltext([name, address])
+  @@map("members")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  userEmail  String?  @db.VarChar(255)
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String   @db.VarChar(50)
+  resource   String   @db.VarChar(50)
+  resourceId String?  @db.VarChar(50)
+  oldValues  Json?
+  newValues  Json?
+  ipAddress  String?  @db.VarChar(45)
+  userAgent  String?  @db.Text
+  status     String   @default("SUCCESS") @db.VarChar(20)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model AssociationSetting {
+  id             Int      @id @default(1)
+  name           String   @db.VarChar(255)
+  nameTamil      String?  @db.VarChar(255)
+  shortName      String   @db.VarChar(50)
+  shortNameTamil String?  @db.VarChar(50)
+  tagline        String?  @db.VarChar(255)
+  taglineTamil   String?  @db.VarChar(255)
+  logo1Url       String?  @db.VarChar(500)
+  logo2Url       String?  @db.VarChar(500)
+  regNumber      String?  @db.VarChar(100)
+  address        String?  @db.Text
+  addressTamil   String?  @db.Text
+  state          String?  @db.VarChar(100)
+  stateTamil     String?  @db.VarChar(100)
+  email          String?  @db.VarChar(255)
+  phone          String?  @db.VarChar(20)
+  updatedAt      DateTime @updatedAt
+
+  @@map("association_settings")
+}
+
+// ─── WhatsApp Module ──────────────────────────────────────────────────────────
+
+model WhatsappVendor {
+  id              Int                @id @default(autoincrement())
+  name            String             @db.VarChar(100)
+  apiBaseUrl      String             @db.VarChar(500)
+  apiKeyEncrypted String             @db.Text
+  isActive        Boolean            @default(true)
+  status          WaRecordStatus     @default(ACTIVE)
+  rateLimitPerSec Int                @default(10)
+  retryLimit      Int                @default(3)
+  walletBalance   Decimal            @default(0) @db.Decimal(12, 4)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  templates       WhatsappTemplate[]
+  logs            WhatsappLog[]
+  settings        WhatsappSettings[]
+  creditLogs      WhatsappCreditLog[]
+
+  @@map("whatsapp_vendors")
+}
+
+model WhatsappTemplate {
+  id               Int                  @id @default(autoincrement())
+  vendorId         Int
+  templateName     String               @db.VarChar(200)
+  vendorTemplateId String?              @db.VarChar(200)
+  language         String               @default("en") @db.VarChar(10)
+  category         WaTemplateCategory
+  variables     Json?
+  body          String?              @db.Text
+  headerText    String?              @db.Text
+  headerFormat  String?              @db.VarChar(50)
+  footerText    String?              @db.VarChar(500)
+  buttons       Json?
+  isActive      Boolean              @default(true)
+  status        WaRecordStatus       @default(ACTIVE)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  vendor        WhatsappVendor       @relation(fields: [vendorId], references: [id])
+  birthdayFor   WhatsappSettings[]   @relation("BirthdayTemplate")
+  anniversaryFor WhatsappSettings[]  @relation("AnniversaryTemplate")
+  events        WhatsappEvent[]
+
+  @@index([vendorId])
+  @@index([category])
+  @@map("whatsapp_templates")
+}
+
+model WhatsappEvent {
+  id           Int              @id @default(autoincrement())
+  name         String           @db.VarChar(200)
+  type         WaEventType
+  templateId   Int
+  scheduleTime String           @db.VarChar(5)
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  template     WhatsappTemplate @relation(fields: [templateId], references: [id])
+
+  @@index([templateId])
+  @@map("whatsapp_events")
+}
+
+model WhatsappLog {
+  id              Int            @id @default(autoincrement())
+  vendorId        Int
+  memberId        Int
+  messageType     WaMessageType
+  templateName    String?        @db.VarChar(200)
+  messageBody     String?        @db.Text
+  messageBodyResolved String?        @db.Text
+  recipientPhone  String         @db.VarChar(20)
+  vendorMessageId String?        @db.VarChar(200)
+  status          WaLogStatus    @default(pending)
+  statusCheckCount Int            @default(0)
+  retryCount      Int            @default(0)
+  errorMessage    String?        @db.Text
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  scheduledDate   DateTime       @db.Date
+  nextRetryAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  vendor          WhatsappVendor @relation(fields: [vendorId], references: [id])
+  member          Member         @relation(fields: [memberId], references: [id])
+  creditLogs      WhatsappCreditLog[]
+
+  @@index([vendorId])
+  @@index([status, nextRetryAt])
+  @@index([scheduledDate])
+  @@index([memberId])
+  @@map("whatsapp_logs")
+}
+
+model WhatsappCreditLog {
+  id        Int           @id @default(autoincrement())
+  vendorId  Int
+  logId     Int?
+  amount    Decimal       @default(1.0000) @db.Decimal(12, 4)
+  type      WaMessageType
+  createdAt DateTime      @default(now())
+  vendor    WhatsappVendor @relation(fields: [vendorId], references: [id])
+  log       WhatsappLog?   @relation(fields: [logId], references: [id])
+
+  @@index([vendorId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("whatsapp_credit_logs")
+}
+
+model WhatsappCronLog {
+  id              Int       @id @default(autoincrement())
+  triggeredBy     String    @default("scheduler") @db.VarChar(50) // "scheduler" | "manual" | "admin"
+  istDate         String    @db.VarChar(10)   // "YYYY-MM-DD" (IST date the cron ran for)
+  processed       Int       @default(0)
+  enqueued        Int       @default(0)
+  skipped         Int       @default(0)
+  failed          Int       @default(0)
+  stoppedReason   String?   @db.VarChar(500)
+  skippedDetails  Json?     // CronSkipDetail[]
+  errors          Json?     // string[]
+  diagnostics     Json?     // { birthdaysToday, anniversariesToday, ... }
+  durationMs      Int?      // wall-clock ms for the run
+  createdAt       DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([istDate])
+  @@map("whatsapp_cron_logs")
+}
+
+model WhatsappSettings {
+  id                    Int               @id @default(1)
+  activeVendorId        Int?
+  retryAttempts         Int               @default(3)
+  cronTime              String            @default("09:00") @db.VarChar(5)
+  enableBirthday        Boolean           @default(true)
+  enableAnniversary     Boolean           @default(true)
+  enableEvents          Boolean           @default(true)
+  birthdayTemplateId    Int?
+  anniversaryTemplateId Int?
+  birthdayVariables     Json?
+  anniversaryVariables  Json?
+  countryCode           String            @default("+91") @db.VarChar(10)
+  countryName           String            @default("India") @db.VarChar(100)
+  updatedAt             DateTime          @updatedAt
+  activeVendor          WhatsappVendor?   @relation(fields: [activeVendorId], references: [id])
+  birthdayTemplate      WhatsappTemplate? @relation("BirthdayTemplate", fields: [birthdayTemplateId], references: [id])
+  anniversaryTemplate   WhatsappTemplate? @relation("AnniversaryTemplate", fields: [anniversaryTemplateId], references: [id])
+
+  @@map("whatsapp_settings")
+}
+
+enum WaTemplateCategory {
+  birthday
+  anniversary
+  festival
+  custom
+  otp
+}
+
+enum WaEventType {
+  birthday
+  anniversary
+  festival
+  custom
+}
+
+enum WaMessageType {
+  birthday
+  anniversary
+  festival
+  custom
+  otp
+  manual
+}
+
+enum WaLogStatus {
+  pending
+  processing
+  sent
+  delivered
+  read
+  failed
+}
+
+enum WaRecordStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  EXPIRED
+  DELETED
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}

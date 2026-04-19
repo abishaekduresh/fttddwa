@@ -1,0 +1,2303 @@
+openapi: 3.0.3
+
+info:
+  title: FTTDDWA Member Management API
+  description: |
+    REST API for the **Federation of Tamil Nadu Tent Dealers & Decorators Welfare Association**
+    member management system.
+
+    ## Authentication
+    All protected endpoints require a valid JWT access token delivered as either:
+    - **Cookie** `access_token` (set automatically on login — preferred for browser clients)
+    - **Header** `Authorization: Bearer <token>` (for API/mobile clients)
+
+    Access tokens expire in **15 minutes**. Use `POST /auth/refresh` to obtain a new one
+    using the `refresh_token` HttpOnly cookie (valid 7 days).
+
+    ## Rate Limits
+    | Scope | Limit |
+    |-------|-------|
+    | Auth endpoints | 5 requests / 15 min per IP |
+    | All API endpoints | 100 requests / 15 min per IP |
+
+  version: "1.3.0"
+  contact:
+    name: FTTDDWA IT Support
+    email: admin@fttddwa.org
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3000/api
+    description: Local development
+  - url: https://portal.fttddwa.org/api
+    description: Production
+
+tags:
+  - name: Auth
+    description: Authentication and session management
+  - name: Members
+    description: Member registration and management
+  - name: Users
+    description: System user management
+  - name: Roles
+    description: Role and permission definitions
+  - name: Audit
+    description: Activity and audit logs
+  - name: Dashboard
+    description: Aggregated statistics
+  - name: Notifications
+    description: Per-member notification preferences
+  - name: WhatsApp
+    description: WhatsApp messaging — vendors, templates, logs, settings, and sending
+  - name: Upload
+    description: File upload
+  - name: System
+    description: Health and system endpoints
+
+# ─── SECURITY SCHEMES ─────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # ─── REUSABLE SCHEMAS ───────────────────────────────────────────────────────
+  schemas:
+
+    ApiSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation successful"
+
+    ApiError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Error description"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            email: ["Invalid email address"]
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 150
+        totalPages:
+          type: integer
+          example: 8
+        hasNext:
+          type: boolean
+        hasPrev:
+          type: boolean
+
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Ravi Kumar"
+        email:
+          type: string
+          format: email
+          example: "admin@fttddwa.org"
+        role:
+          type: string
+          enum: [SUPER_ADMIN, ADMIN, DATA_ENTRY, VIEWER]
+          example: "SUPER_ADMIN"
+        roleId:
+          type: integer
+          example: 1
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "SUPER_ADMIN"
+        displayName:
+          type: string
+          example: "Super Admin"
+        description:
+          type: string
+          example: "Full access to all features"
+        isSystem:
+          type: boolean
+          example: true
+        _count:
+          type: object
+          properties:
+            users:
+              type: integer
+              example: 2
+
+    Permission:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "members:create"
+        displayName:
+          type: string
+          example: "Create Members"
+        resource:
+          type: string
+          example: "members"
+        action:
+          type: string
+          example: "create"
+
+    MemberStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE, SUSPENDED, EXPIRED]
+      example: "ACTIVE"
+
+    MemberSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        membershipId:
+          type: string
+          example: "FTTD260001"
+        name:
+          type: string
+          example: "Ravi Kumar"
+        nameTamil:
+          type: string
+          example: "ரவி குமார்"
+          nullable: true
+        position:
+          type: string
+          example: "President"
+          nullable: true
+        district:
+          type: string
+          example: "Chennai"
+        taluk:
+          type: string
+          example: "Chennai North"
+        phone:
+          type: string
+          example: "9876543210"
+        status:
+          $ref: "#/components/schemas/MemberStatus"
+        createdAt:
+          type: string
+          format: date-time
+
+    MemberDetail:
+      allOf:
+        - $ref: "#/components/schemas/MemberSummary"
+        - type: object
+          properties:
+            address:
+              type: string
+              example: "123 Anna Salai, Chennai 600002"
+            industry:
+              type: string
+              example: "Tent & Decoration"
+              nullable: true
+            dateOfBirth:
+              type: string
+              format: date
+              nullable: true
+            email:
+              type: string
+              format: email
+              nullable: true
+            weddingDate:
+              type: string
+              format: date
+              nullable: true
+            businessName:
+              type: string
+              example: "Ravi Tent House"
+              nullable: true
+            businessNameTamil:
+              type: string
+              example: "ரவி டென்ட் ஹவுஸ்"
+              nullable: true
+            village:
+              type: string
+              example: "Mylapore"
+              nullable: true
+            state:
+              type: string
+              example: "Tamil Nadu"
+              nullable: true
+            remark:
+              type: string
+              example: "Life member since 2015"
+              nullable: true
+            photoUrl:
+              type: string
+              example: "/uploads/members/photo.jpg"
+              nullable: true
+            notifyBirthday:
+              type: boolean
+              example: true
+              description: "Whether to show this member in birthday celebration reminders"
+            notifyWedding:
+              type: boolean
+              example: true
+              description: "Whether to show this member in wedding anniversary reminders"
+            joinedAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            createdBy:
+              type: object
+              nullable: true
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+
+    CreateMemberRequest:
+      type: object
+      required: [name, address, district, taluk, phone]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 200
+          example: "Ravi Kumar"
+        nameTamil:
+          type: string
+          maxLength: 200
+          example: "ரவி குமார்"
+        position:
+          type: string
+          maxLength: 100
+          example: "Member"
+        aadhaar:
+          type: string
+          pattern: "^\\d{12}$"
+          description: "12-digit Aadhaar number (stored encrypted)"
+          example: "123456789012"
+        address:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: "123 Main Street, Mylapore, Chennai 600004"
+        district:
+          type: string
+          example: "Chennai"
+        taluk:
+          type: string
+          example: "Chennai North"
+        industry:
+          type: string
+          example: "Tent & Decoration"
+        dateOfBirth:
+          type: string
+          format: date
+          example: "1985-06-15"
+        weddingDate:
+          type: string
+          format: date
+          example: "2010-05-20"
+        phone:
+          type: string
+          pattern: "^[6-9]\\d{9}$"
+          example: "9876543210"
+        email:
+          type: string
+          format: email
+          example: "ravi@example.com"
+        businessName:
+          type: string
+          maxLength: 200
+          example: "Ravi Tent House"
+        businessNameTamil:
+          type: string
+          maxLength: 200
+          example: "ரவி டென்ட் ஹவுஸ்"
+        village:
+          type: string
+          maxLength: 100
+          example: "Mylapore"
+        state:
+          type: string
+          maxLength: 100
+          example: "Tamil Nadu"
+        remark:
+          type: string
+          maxLength: 1000
+          example: "Life member since 2015"
+        photoUrl:
+          type: string
+          example: "/uploads/members/1714123456-abc123.jpg"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+        isActive:
+          type: boolean
+          example: true
+        lastLoginAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedLoginCount:
+          type: integer
+          example: 0
+        createdAt:
+          type: string
+          format: date-time
+        role:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "ADMIN"
+            displayName:
+              type: string
+              example: "Admin"
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+          enum: [CREATE, UPDATE, DELETE, LOGIN, LOGOUT, LOGIN_FAILED, EXPORT, UPLOAD, SYNC, TRIGGER]
+          example: "CREATE"
+        resource:
+          type: string
+          example: "members"
+        resourceId:
+          type: string
+          nullable: true
+          example: "42"
+        userEmail:
+          type: string
+          nullable: true
+        ipAddress:
+          type: string
+          nullable: true
+          example: "192.168.1.1"
+        status:
+          type: string
+          enum: [SUCCESS, FAILURE]
+          example: "SUCCESS"
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          type: object
+          nullable: true
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+
+    CelebrationItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        membershipId:
+          type: string
+          example: "FTTD260001"
+        name:
+          type: string
+          example: "Ravi Kumar"
+        phone:
+          type: string
+          example: "9876543210"
+        district:
+          type: string
+          example: "Chennai"
+        type:
+          type: string
+          enum: [birthday, wedding]
+          example: "birthday"
+        date:
+          type: string
+          format: date
+          example: "1985-04-18"
+          description: "Original date (year is historical, day/month is what matters)"
+        daysUntil:
+          type: integer
+          example: 1
+          description: "0 = today, 1 = tomorrow, 2–7 = this week"
+
+    DashboardStats:
+      type: object
+      properties:
+        totalMembers:
+          type: integer
+          example: 1250
+        activeMembers:
+          type: integer
+          example: 1100
+        inactiveMembers:
+          type: integer
+          example: 150
+        totalUsers:
+          type: integer
+          example: 8
+        newMembersThisMonth:
+          type: integer
+          example: 34
+        recentMembers:
+          type: array
+          items:
+            $ref: "#/components/schemas/MemberSummary"
+        membersByDistrict:
+          type: array
+          items:
+            type: object
+            properties:
+              district:
+                type: string
+              count:
+                type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+        upcomingCelebrations:
+          type: array
+          description: "Active members with birthdays or wedding anniversaries in the next 7 days (notifyBirthday/notifyWedding must be enabled)"
+          items:
+            $ref: "#/components/schemas/CelebrationItem"
+
+    WaVendor:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "SendAdz"
+        apiBaseUrl:
+          type: string
+          example: "https://api.sendadz.com"
+        isActive:
+          type: boolean
+          example: true
+        rateLimitPerSec:
+          type: integer
+          example: 10
+        retryLimit:
+          type: integer
+          example: 3
+        walletBalance:
+          type: string
+          description: "Decimal balance as string"
+          example: "250.0000"
+        createdAt:
+          type: string
+          format: date-time
+
+    WaTemplate:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        vendorId:
+          type: integer
+          example: 1
+        vendorTemplateId:
+          type: string
+          nullable: true
+          example: "happy_birthday_v1"
+          description: "Template ID as known by the vendor (e.g. Interakt template name)"
+        templateName:
+          type: string
+          example: "happy_birthday_v1"
+        language:
+          type: string
+          example: "en"
+        category:
+          type: string
+          enum: [birthday, anniversary, festival, custom, otp]
+          example: "birthday"
+        body:
+          type: string
+          nullable: true
+          example: "Happy Birthday {{1}}! Wishing you a wonderful day."
+        headerText:
+          type: string
+          nullable: true
+        headerFormat:
+          type: string
+          nullable: true
+          enum: [TEXT, IMAGE, VIDEO, DOCUMENT]
+        footerText:
+          type: string
+          nullable: true
+        buttons:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [QUICK_REPLY, URL, PHONE_NUMBER]
+              text:
+                type: string
+        variables:
+          type: array
+          nullable: true
+          items:
+            type: string
+          example: ["1", "2"]
+        isActive:
+          type: boolean
+          example: true
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, DELETED]
+          example: "ACTIVE"
+        vendor:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+
+    WaLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 101
+        messageType:
+          type: string
+          enum: [birthday, anniversary, festival, custom, otp, manual]
+          example: "birthday"
+        templateName:
+          type: string
+          nullable: true
+          example: "happy_birthday_v1"
+        recipientPhone:
+          type: string
+          example: "919876543210"
+        vendorMessageId:
+          type: string
+          nullable: true
+          example: "msg_abc123"
+        status:
+          type: string
+          enum: [pending, processing, sent, delivered, read, failed]
+          example: "delivered"
+        retryCount:
+          type: integer
+          example: 0
+        errorMessage:
+          type: string
+          nullable: true
+        sentAt:
+          type: string
+          format: date-time
+          nullable: true
+        deliveredAt:
+          type: string
+          format: date-time
+          nullable: true
+        readAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: "Timestamp when the recipient read/opened the message (WhatsApp read receipt)"
+        messageBodyResolved:
+          type: string
+          nullable: true
+          description: "Final rendered message body with variables substituted"
+        scheduledDate:
+          type: string
+          format: date
+          example: "2026-04-18"
+        createdAt:
+          type: string
+          format: date-time
+        vendor:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        member:
+          type: object
+          properties:
+            id:
+              type: integer
+            membershipId:
+              type: string
+            name:
+              type: string
+            phone:
+              type: string
+
+    WaSettings:
+      type: object
+      properties:
+        activeVendorId:
+          type: integer
+          nullable: true
+          example: 1
+        retryAttempts:
+          type: integer
+          example: 3
+        cronTime:
+          type: string
+          pattern: "^\\d{2}:\\d{2}$"
+          example: "09:00"
+          description: "Daily cron trigger time in HH:MM format (IST)"
+        enableBirthday:
+          type: boolean
+          example: true
+        enableAnniversary:
+          type: boolean
+          example: true
+        enableEvents:
+          type: boolean
+          example: true
+        birthdayTemplateId:
+          type: integer
+          nullable: true
+          example: 1
+        anniversaryTemplateId:
+          type: integer
+          nullable: true
+          example: 2
+        countryCode:
+          type: string
+          nullable: true
+          example: "91"
+          description: "Country dial code prefix used when formatting phone numbers"
+        countryName:
+          type: string
+          nullable: true
+          example: "India"
+        birthdayVariables:
+          type: array
+          nullable: true
+          items:
+            type: string
+          example: ["name", "membershipId"]
+          description: "Ordered list of member fields to use as template variables for birthday messages"
+        anniversaryVariables:
+          type: array
+          nullable: true
+          items:
+            type: string
+          example: ["name", "membershipId"]
+          description: "Ordered list of member fields to use as template variables for anniversary messages"
+
+    WaCronLog:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        triggeredBy:
+          type: string
+          enum: [scheduler, manual, admin]
+          example: "scheduler"
+        istDate:
+          type: string
+          example: "2026-04-19"
+          description: "The IST calendar date this cron run targeted"
+        processed:
+          type: integer
+          example: 12
+          description: "Total members considered for sending"
+        enqueued:
+          type: integer
+          example: 5
+          description: "Messages successfully enqueued to BullMQ"
+        skipped:
+          type: integer
+          example: 7
+          description: "Members skipped (duplicate, invalid phone, etc.)"
+        failed:
+          type: integer
+          example: 0
+          description: "Members that caused an error during queueing"
+        stoppedReason:
+          type: string
+          nullable: true
+          example: null
+          description: "Set when the cron halted early (e.g. no vendor, empty wallet)"
+        skippedDetails:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              memberId:
+                type: integer
+              name:
+                type: string
+              reason:
+                type: string
+        errors:
+          type: array
+          nullable: true
+          items:
+            type: object
+            properties:
+              memberId:
+                type: integer
+              error:
+                type: string
+        diagnostics:
+          type: object
+          nullable: true
+          description: "Internal diagnostics snapshot (vendor balance, settings flags, etc.)"
+        durationMs:
+          type: integer
+          nullable: true
+          example: 320
+          description: "Wall-clock time the cron run took in milliseconds"
+        createdAt:
+          type: string
+          format: date-time
+
+    WaUsageStats:
+      type: object
+      properties:
+        today:
+          type: object
+          properties:
+            credits:
+              type: number
+              example: 12
+            messages:
+              type: integer
+              example: 12
+        yesterday:
+          type: object
+          properties:
+            credits:
+              type: number
+              example: 8
+            messages:
+              type: integer
+              example: 8
+        total:
+          type: object
+          properties:
+            credits:
+              type: number
+              example: 250
+            messages:
+              type: integer
+              example: 250
+        byVendor:
+          type: array
+          items:
+            type: object
+            properties:
+              vendorId:
+                type: integer
+              vendorName:
+                type: string
+              credits:
+                type: number
+        byType:
+          type: array
+          items:
+            type: object
+            properties:
+              messageType:
+                type: string
+              credits:
+                type: number
+
+  # ─── REUSABLE RESPONSES ─────────────────────────────────────────────────────
+  responses:
+    Unauthorized:
+      description: Missing or invalid access token
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          example:
+            success: false
+            message: "Unauthorized"
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          example:
+            success: false
+            message: "Forbidden"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          example:
+            success: false
+            message: "Not found"
+
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+          example:
+            success: false
+            message: "Validation failed"
+            errors:
+              phone: ["Enter a valid 10-digit Indian mobile number"]
+
+    RateLimit:
+      description: Too many requests
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiError"
+
+  # ─── REUSABLE PARAMETERS ────────────────────────────────────────────────────
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSizeParam:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+# ─── SECURITY (default for all endpoints) ─────────────────────────────────────
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+# ─── PATHS ────────────────────────────────────────────────────────────────────
+paths:
+
+  # ── AUTH ─────────────────────────────────────────────────────────────────────
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      description: |
+        Authenticates a user with email and password.
+        Sets two HttpOnly cookies: `access_token` (15 min) and `refresh_token` (7 days, path restricted to `/api/auth/refresh`).
+        The response body does **not** contain user data — fetch `/auth/me` after login to get the user profile.
+
+        Returns `429` after too many failed attempts from the same IP.
+        Returns `401` after **10** consecutive wrong passwords — account is locked for 5 minutes.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "admin@fttddwa.org"
+                password:
+                  type: string
+                  format: password
+                  example: "Admin@123456"
+      responses:
+        "200":
+          description: Login successful — call `GET /auth/me` to retrieve user profile
+          headers:
+            Set-Cookie:
+              description: "access_token (HttpOnly, 15 min) and refresh_token (HttpOnly, 7 days, path=/api/auth/refresh)"
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+              example:
+                success: true
+                message: "Login successful"
+        "401":
+          description: Invalid credentials or account locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          $ref: "#/components/responses/RateLimit"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      description: |
+        Uses the `refresh_token` cookie to issue a new `access_token` and rotates the refresh token.
+        The old refresh token is immediately invalidated.
+      security: []
+      responses:
+        "200":
+          description: Token refreshed
+          headers:
+            Set-Cookie:
+              description: New access_token and refresh_token cookies
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Revokes the current session and clears auth cookies.
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user
+      description: Returns the authenticated user's profile including their role and all assigned permissions.
+      responses:
+        "200":
+          description: Current user details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        allOf:
+                          - $ref: "#/components/schemas/AuthUser"
+                          - type: object
+                            properties:
+                              permissions:
+                                type: array
+                                items:
+                                  type: string
+                                example: ["members:read", "members:create", "dashboard:read"]
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ── MEMBERS ──────────────────────────────────────────────────────────────────
+
+  /members:
+    get:
+      tags: [Members]
+      summary: List members
+      description: Returns a paginated list of members. Supports search and filtering.
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: search
+          in: query
+          description: Search by name, Tamil name, membership ID, or phone
+          schema:
+            type: string
+            example: "Ravi"
+        - name: district
+          in: query
+          schema:
+            type: string
+            example: "Chennai"
+        - name: taluk
+          in: query
+          schema:
+            type: string
+            example: "Chennai North"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/MemberStatus"
+      responses:
+        "200":
+          description: Paginated member list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/MemberSummary"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      tags: [Members]
+      summary: Create member
+      description: |
+        Registers a new member. Auto-generates a membership ID (`FTTD{YY}{NNNNN}`).
+        Requires `members:create` permission (Super Admin, Admin, Data Entry Operator).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMemberRequest"
+      responses:
+        "201":
+          description: Member created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/MemberDetail"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /members/stats:
+    get:
+      tags: [Members]
+      summary: Member statistics
+      description: |
+        Returns aggregated member statistics.
+        Use the `type` query param to get specific data:
+        - No param → full stats object
+        - `type=districts` → list of distinct districts
+        - `type=taluks` → list of taluks (filter by `district`)
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [districts, taluks]
+        - name: district
+          in: query
+          description: Required when type=taluks
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Stats or list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+
+  /members/export:
+    get:
+      tags: [Members]
+      summary: Export members
+      description: |
+        Downloads member data as a formatted Excel file (`.xlsx`).
+        Applies same district/status filters as GET /members.
+        Requires `members:export` permission (Super Admin, Admin only).
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [excel]
+            default: excel
+        - name: district
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/MemberStatus"
+      responses:
+        "200":
+          description: Excel file download
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /members/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        example: 42
+
+    get:
+      tags: [Members]
+      summary: Get member
+      description: Returns full member detail including photo URL and creation metadata.
+      responses:
+        "200":
+          description: Member detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/MemberDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [Members]
+      summary: Update member
+      description: Partially updates a member record. All fields are optional. Requires `members:update` permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMemberRequest"
+      responses:
+        "200":
+          description: Member updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/MemberDetail"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [Members]
+      summary: Delete member
+      description: |
+        Permanently deletes a member record and their uploaded photo.
+        Requires `members:delete` permission (Super Admin, Admin only).
+      responses:
+        "200":
+          description: Member deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /members/{id}/notifications:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        example: 42
+
+    get:
+      tags: [Notifications]
+      summary: Get notification preferences
+      description: Returns the birthday and wedding anniversary notification toggles for a member.
+      responses:
+        "200":
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          notifyBirthday:
+                            type: boolean
+                            example: true
+                          notifyWedding:
+                            type: boolean
+                            example: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [Notifications]
+      summary: Update notification preferences
+      description: |
+        Enables or disables birthday and/or wedding anniversary notifications for a member.
+        At least one of `notifyBirthday` or `notifyWedding` must be provided.
+        Requires `members:update` permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                notifyBirthday:
+                  type: boolean
+                  example: false
+                notifyWedding:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: Preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── USERS ─────────────────────────────────────────────────────────────────────
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      description: Returns all system users. Requires `users:read` permission.
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+      responses:
+        "200":
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/User"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      tags: [Users]
+      summary: Create user
+      description: Creates a new system user. Requires `users:create` permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password, roleId]
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  example: "Jane Smith"
+                email:
+                  type: string
+                  format: email
+                  example: "jane@fttddwa.org"
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  description: "Must contain uppercase, lowercase, number"
+                  example: "Secure@Pass1"
+                roleId:
+                  type: integer
+                  example: 2
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        example: 3
+
+    get:
+      tags: [Users]
+      summary: Get user
+      description: Returns user detail with full permission list.
+      responses:
+        "200":
+          description: User detail
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/User"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [Users]
+      summary: Update user
+      description: |
+        Updates user details or role. Requires `users:update` permission.
+        Use `isActive: false` to deactivate without deleting the account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                roleId:
+                  type: integer
+                isActive:
+                  type: boolean
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    delete:
+      tags: [Users]
+      summary: Delete user
+      description: Permanently deletes a user. **Super Admin only.** Cannot delete your own account.
+      responses:
+        "200":
+          description: User deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "400":
+          description: Cannot delete own account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── ROLES ─────────────────────────────────────────────────────────────────────
+
+  /roles:
+    get:
+      tags: [Roles]
+      summary: List roles
+      description: Returns all roles with their assigned permissions and user count.
+      responses:
+        "200":
+          description: Role list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Role"
+
+  # ── AUDIT LOGS ───────────────────────────────────────────────────────────────
+
+  /audit-logs:
+    get:
+      tags: [Audit]
+      summary: List audit logs
+      description: Returns paginated audit events. Requires `audit:read` permission (Super Admin, Admin).
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: resource
+          in: query
+          schema:
+            type: string
+            enum: [auth, members, users, roles, settings, whatsapp_templates, whatsapp_cron]
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [CREATE, UPDATE, DELETE, LOGIN, LOGOUT, LOGIN_FAILED, EXPORT, UPLOAD, SYNC, TRIGGER]
+      responses:
+        "200":
+          description: Paginated audit logs
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/AuditLog"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── DASHBOARD ─────────────────────────────────────────────────────────────────
+
+  /dashboard/stats:
+    get:
+      tags: [Dashboard]
+      summary: Dashboard statistics
+      description: |
+        Returns aggregate statistics for the dashboard:
+        - Member counts (total, active, inactive, new this month)
+        - Last 5 recent member registrations
+        - Top 8 districts by member count
+        - Last 10 audit events
+        - Upcoming celebrations (birthdays/anniversaries in the next 7 days)
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/DashboardStats"
+
+  # ── UPLOAD ───────────────────────────────────────────────────────────────────
+
+  /upload:
+    post:
+      tags: [Upload]
+      summary: Upload member photo
+      description: |
+        Uploads a passport-size member photo.
+        - Accepted types: `image/jpeg`, `image/png`, `image/webp`
+        - Maximum size: **5 MB**
+        - Returns a URL path to be stored in the member's `photoUrl` field.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Upload successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                            example: "/uploads/members/1714123456-abc123.jpg"
+                          filename:
+                            type: string
+                            example: "1714123456-abc123.jpg"
+        "400":
+          description: Invalid file type or size exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── WHATSAPP ──────────────────────────────────────────────────────────────────
+
+  /whatsapp/vendors:
+    get:
+      tags: [WhatsApp]
+      summary: List vendors
+      description: Returns all configured WhatsApp API vendors. API keys are never returned. Requires `whatsapp:read`.
+      responses:
+        "200":
+          description: Vendor list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/WaVendor"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      tags: [WhatsApp]
+      summary: Create vendor
+      description: Adds a new WhatsApp API vendor. API key is encrypted before storage. Requires `whatsapp:manage`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, apiBaseUrl, apiKey]
+              properties:
+                name:
+                  type: string
+                  example: "SendAdz"
+                apiBaseUrl:
+                  type: string
+                  example: "https://api.sendadz.com"
+                apiKey:
+                  type: string
+                  description: "Plain-text API key — encrypted at rest"
+                  example: "sk_live_abc123..."
+                rateLimitPerSec:
+                  type: integer
+                  default: 10
+                  example: 10
+                retryLimit:
+                  type: integer
+                  default: 3
+                  example: 3
+      responses:
+        "201":
+          description: Vendor created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/WaVendor"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /whatsapp/vendors/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          example: 1
+
+    get:
+      tags: [WhatsApp]
+      summary: Get vendor
+      description: Returns a single vendor by ID. Requires `whatsapp:read`.
+      responses:
+        "200":
+          description: Vendor details
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/WaVendor"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    put:
+      tags: [WhatsApp]
+      summary: Update vendor / refresh balance
+      description: |
+        Updates vendor fields. Pass `action: "refresh_balance"` to fetch the live wallet balance from the vendor API.
+        Requires `whatsapp:manage`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    action:
+                      type: string
+                      enum: [refresh_balance]
+                      example: "refresh_balance"
+                - type: object
+                  properties:
+                    name:
+                      type: string
+                    apiBaseUrl:
+                      type: string
+                    apiKey:
+                      type: string
+                      description: "Provide only if rotating the key"
+                    isActive:
+                      type: boolean
+                    rateLimitPerSec:
+                      type: integer
+                    retryLimit:
+                      type: integer
+      responses:
+        "200":
+          description: Vendor updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/WaVendor"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [WhatsApp]
+      summary: Delete vendor
+      description: Permanently removes a vendor. Requires `whatsapp:manage`.
+      responses:
+        "200":
+          description: Vendor deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /whatsapp/templates:
+    get:
+      tags: [WhatsApp]
+      summary: List templates
+      description: Returns all WhatsApp approved templates stored in the database. Requires `whatsapp:read`.
+      parameters:
+        - name: vendorId
+          in: query
+          schema:
+            type: integer
+          description: Filter by vendor
+      responses:
+        "200":
+          description: Template list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/WaTemplate"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /whatsapp/templates/sync:
+    post:
+      tags: [WhatsApp]
+      summary: Sync templates from vendor
+      description: |
+        Fetches the approved template list from the vendor API and upserts them into the local database.
+        Returns counts of created and updated templates. Requires `whatsapp:manage`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vendorId]
+              properties:
+                vendorId:
+                  type: integer
+                  example: 1
+      responses:
+        "200":
+          description: Sync complete
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          created:
+                            type: integer
+                            example: 3
+                          updated:
+                            type: integer
+                            example: 1
+                          total:
+                            type: integer
+                            example: 4
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /whatsapp/settings:
+    get:
+      tags: [WhatsApp]
+      summary: Get WhatsApp settings
+      description: Returns the global WhatsApp automation settings (singleton). Requires `whatsapp:read`.
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/WaSettings"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    put:
+      tags: [WhatsApp]
+      summary: Update WhatsApp settings
+      description: Updates automation settings. All fields are optional — only provided fields are changed. Requires `whatsapp:manage`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WaSettings"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/WaSettings"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /whatsapp/send:
+    post:
+      tags: [WhatsApp]
+      summary: Send manual message
+      description: |
+        Queues a manual WhatsApp template message to a single member.
+        Validates vendor wallet balance and phone number before queuing.
+        Requires `whatsapp:send`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [memberId, templateId]
+              properties:
+                memberId:
+                  type: integer
+                  example: 42
+                templateId:
+                  type: integer
+                  example: 1
+                variables:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  example:
+                    member_name: "Ravi Kumar"
+                    date: "18 Apr 2026"
+      responses:
+        "200":
+          description: Message queued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          logId:
+                            type: integer
+                            example: 201
+        "400":
+          description: Validation error or wallet empty
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /whatsapp/logs:
+    get:
+      tags: [WhatsApp]
+      summary: List message logs
+      description: Returns a paginated list of WhatsApp delivery logs. Requires `whatsapp:read`.
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+        - name: messageType
+          in: query
+          schema:
+            type: string
+            enum: [birthday, anniversary, festival, custom, otp, manual]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, processing, sent, delivered, read, failed]
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2026-04-01"
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+          example: "2026-04-30"
+      responses:
+        "200":
+          description: Paginated log list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/WaLog"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /whatsapp/webhook:
+    post:
+      tags: [WhatsApp]
+      summary: Delivery status webhook
+      description: |
+        **Public endpoint** — no authentication required.
+        Called by the WhatsApp vendor when a message status changes (e.g., `delivered`, `read`).
+
+        Verifies HMAC-SHA256 signature via `X-Webhook-Signature` header if `WHATSAPP_WEBHOOK_SECRET` is configured.
+        Updates the corresponding log entry status. `read` status is normalized to `delivered`.
+      security: []
+      parameters:
+        - name: X-Webhook-Signature
+          in: header
+          description: "HMAC-SHA256 of the raw request body, hex-encoded"
+          required: false
+          schema:
+            type: string
+            example: "sha256=abc123..."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [messageId, status]
+              properties:
+                messageId:
+                  type: string
+                  example: "msg_abc123"
+                status:
+                  type: string
+                  enum: [sent, delivered, read, failed]
+                  example: "delivered"
+                timestamp:
+                  type: string
+                  format: date-time
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiSuccess"
+        "401":
+          description: Invalid webhook signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /whatsapp/cron/trigger:
+    post:
+      tags: [WhatsApp]
+      summary: Trigger daily cron manually
+      description: |
+        Manually triggers the daily WhatsApp cron job (birthday/anniversary/event messages).
+        Accepts either `X-Cron-Secret` header matching `WHATSAPP_CRON_SECRET` env var,
+        or a valid JWT for a SUPER_ADMIN or ADMIN role.
+        Returns counts of enqueued and skipped messages, or a `stoppedReason` if halted early (e.g., no vendor, wallet empty).
+      parameters:
+        - name: X-Cron-Secret
+          in: header
+          description: Internal cron secret (alternative to JWT auth)
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cron run result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          enqueued:
+                            type: integer
+                            example: 5
+                          skipped:
+                            type: integer
+                            example: 2
+                          processed:
+                            type: integer
+                            example: 7
+                          failed:
+                            type: integer
+                            example: 0
+                          durationMs:
+                            type: integer
+                            example: 312
+                          errors:
+                            type: array
+                            items:
+                              type: string
+                          stoppedReason:
+                            type: string
+                            nullable: true
+                            example: null
+                          dlr:
+                            type: object
+                            nullable: true
+                            description: "DLR poll results if status sync ran alongside cron"
+                            properties:
+                              checked:
+                                type: integer
+                              updated:
+                                type: integer
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /whatsapp/cron/logs:
+    get:
+      tags: [WhatsApp]
+      summary: List cron run logs
+      description: Returns a paginated list of WhatsApp cron job runs. Requires `whatsapp:read`.
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/PageSizeParam"
+      responses:
+        "200":
+          description: Paginated cron log list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/WaCronLog"
+                      pagination:
+                        $ref: "#/components/schemas/Pagination"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /whatsapp/stats/usage:
+    get:
+      tags: [WhatsApp]
+      summary: Credit usage statistics
+      description: |
+        Returns WhatsApp credit usage stats for today (IST), yesterday (IST), and all time.
+        Broken down by vendor and message type. Requires `whatsapp:read`.
+      responses:
+        "200":
+          description: Usage statistics
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/WaUsageStats"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /whatsapp/dlr/poll:
+    post:
+      tags: [WhatsApp]
+      summary: Poll vendor for DLR status updates
+      description: |
+        Manually triggers a DLR (Delivery Report) status poll for pending/sent messages.
+        Calls the vendor's `/getdlr` endpoint for each log with `vendorMessageId` and updates
+        the log status accordingly. Requires `whatsapp:manage`.
+
+        Returns counts of logs checked and updated.
+      responses:
+        "200":
+          description: DLR poll result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiSuccess"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          checked:
+                            type: integer
+                            example: 10
+                            description: "Number of logs checked"
+                          updated:
+                            type: integer
+                            example: 3
+                            description: "Number of logs whose status changed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── HEALTH ───────────────────────────────────────────────────────────────────
+
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      description: Returns application and database health status. No authentication required.
+      security: []
+      responses:
+        "200":
+          description: Application is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  database:
+                    type: string
+                    example: "connected"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: "1.3.0"
+        "503":
+          description: Database unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "error"
+                  database:
+                    type: string
+                    example: "disconnected"

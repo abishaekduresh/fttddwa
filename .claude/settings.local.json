@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls c:/wamp64/www/fttddwa/*.md)",
+      "Bash(find \"c:/wamp64/www/fttddwa/src/app/\\(dashboard\\)/docs\" -name \"*.tsx\")",
+      "Bash(ls -la /c/wamp64/www/fttddwa/src/components/*/)",
+      "Bash(npx prisma:*)",
+      "Bash(findstr -n \"role\")"
+    ]
+  }
+}
