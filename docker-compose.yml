@@ -55,6 +55,27 @@ services:
       timeout: 10s
       retries: 3
 
+  # ─── WhatsApp Worker ────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: fttddwa_worker
+    restart: unless-stopped
+    command: ["node", "dist/worker/worker.js"]
+    environment:
+      DATABASE_URL: mysql://fttddwa_user:${MYSQL_PASSWORD:-securepassword}@db:3306/fttddwa_db
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fttddwa_network
+
   # ─── Nginx Reverse Proxy ────────────────────────────────────────────────────
   nginx:
     image: nginx:alpine

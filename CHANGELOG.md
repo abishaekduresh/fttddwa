@@ -168,11 +168,13 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.2.0 | 2026-04-19 | WhatsApp Module, Credit Tracking, IST Automation, and Deployment Refinement |
 | 1.1.0 | 2026-04-17 | Added Wedding Date field and enhanced member details view |
 | 1.0.0 | 2026-04-17 | Initial release — full CRUD, RBAC, JWT, Docker, Swagger |
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/your-org/fttddwa/releases/tag/v1.2.0
 [1.1.0]: https://github.com/your-org/fttddwa/releases/tag/v1.1.0
 [1.0.0]: https://github.com/your-org/fttddwa/releases/tag/v1.0.0

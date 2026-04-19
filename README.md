@@ -139,35 +139,34 @@ fttddwa/
 │   │   ├── (dashboard)/         # Protected admin pages
 │   │   │   ├── dashboard/       # Stats & activity
 │   │   │   ├── members/         # List, create, view, edit
+│   │   │   ├── whatsapp/        # Logs, Send, Templates, Vendors
 │   │   │   ├── users/           # User management
 │   │   │   ├── roles/           # Permission matrix viewer
 │   │   │   ├── audit-logs/      # Activity log
-│   │   │   ├── reports/         # Export centre
 │   │   │   └── settings/        # Profile & password
 │   │   └── api/                 # REST API routes
 │   │       ├── auth/            # login, logout, refresh, me
 │   │       ├── members/         # CRUD + export + stats
+│   │       ├── whatsapp/        # Logs, Stats, Send, DLR, Cron
 │   │       ├── users/           # CRUD
 │   │       ├── roles/           # List
 │   │       ├── audit-logs/      # List
-│   │       ├── dashboard/stats/ # Stats aggregation
-│   │       ├── upload/          # Photo upload
 │   │       └── health/          # Health check
 │   ├── components/
 │   │   ├── layout/              # Sidebar, Topbar
 │   │   └── members/             # MemberForm
 │   ├── lib/
-│   │   ├── services/            # Business logic (auth, member, user, audit, dashboard)
+│   │   ├── services/            # Business logic (auth, member, user, whatsapp)
+│   │   ├── whatsapp/            # Vendor factory, Queue, Processor
 │   │   ├── security/            # Rate limiter, sanitizer
 │   │   ├── validation/          # Zod schemas
 │   │   ├── utils/               # JWT, password, format, pagination
 │   │   └── api/                 # Response helpers, route guard
 │   ├── store/                   # Zustand auth store
 │   ├── hooks/                   # useAuth
-│   ├── constants/               # Roles, permissions, districts
 │   └── middleware.ts            # JWT verification + rate limiting
 ├── prisma/
-│   ├── schema.prisma            # DB schema (6 models)
+│   ├── schema.prisma            # DB schema (10+ models)
 │   └── seed.ts                  # Roles, permissions, super admin
 ├── tests/                       # Jest unit tests
 ├── docker/                      # Nginx config, MySQL init
