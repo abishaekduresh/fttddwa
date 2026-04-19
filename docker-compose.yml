@@ -76,7 +76,22 @@ services:
     networks:
       - fttddwa_network
 
-  # ─── Nginx Reverse Proxy ────────────────────────────────────────────────────
+  # ─── Database Management (phpMyAdmin) ───────────────────────────────────────
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: fttddwa_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      UPLOAD_LIMIT: 64M
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fttddwa_network
   nginx:
     image: nginx:alpine
     container_name: fttddwa_nginx

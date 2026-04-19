@@ -125,7 +125,9 @@ docker compose exec app npx prisma migrate deploy
 docker compose exec app npm run db:seed
 ```
 
-Access at [http://localhost](http://localhost)
+Access at:
+- **Web App**: [http://localhost](http://localhost)
+- **phpMyAdmin**: [http://localhost:8081](http://localhost:8081)
 
 ---
 
@@ -147,11 +149,13 @@ fttddwa/
 │   │   └── api/                 # REST API routes
 │   │       ├── auth/            # login, logout, refresh, me
 │   │       ├── members/         # CRUD + export + stats
+│   │       ├── dashboard/       # Stats & activity aggregation
 │   │       ├── whatsapp/        # Logs, Stats, Send, DLR, Cron
 │   │       ├── users/           # CRUD
 │   │       ├── roles/           # List
 │   │       ├── audit-logs/      # List
-│   │       └── health/          # Health check
+│   │       ├── health/          # Health check
+│   │       └── phpmyadmin/      # (Managed via Docker)
 │   ├── components/
 │   │   ├── layout/              # Sidebar, Topbar
 │   │   └── members/             # MemberForm
