@@ -104,6 +104,15 @@ The system deducts 1 credit per message sent. Credit tracking is automated, and 
 > npm install
 > ```
 
+> [!IMPORTANT]
+> **Missing Database Tables / Build Failure**
+> If `npm run build` fails during "Collecting page data" or you see errors that tables do not exist, it means your database is not initialized.
+> **Fix:** Force create the tables directly from your schema:
+> ```bash
+> npx prisma db push
+> npm run db:seed
+> ```
+
 ---
 
 ## Docker Deployment
