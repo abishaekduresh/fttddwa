@@ -137,6 +137,11 @@ npm run db:migrate:prod
 ### 2. Startup Phase (PM2)
 The project includes an `ecosystem.config.js` to manage both the Next.js app and the background worker.
 
+> [!NOTE]
+> **Script Environments**:
+> - **Standard scripts** (`npm run dev`, `npm run db:migrate`) automatically use `.env.local` for local development.
+> - **Production scripts** (`npm run start`, `npm run prod:start`, `npm run db:migrate:prod`) rely on system environment variables or a standard `.env` file.
+
 **Via Command Line:**
 ```bash
 # Start both processes

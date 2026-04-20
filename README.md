@@ -143,17 +143,32 @@ npm run worker:build
 npm run db:migrate:prod
 ```
 
-### 2. Start with PM2
-The project includes an `ecosystem.config.js` to manage both the Web Server and the Worker.
-```bash
+### 2. Startup Phase (PM2)
+The project includes an `ecosystem.config.js` to manage both the Next.js app and the background worker.
+
+> [!NOTE]
+> **Script Environments**:
+> - **Standard scripts** (`npm run dev`, `npm run db:migrate`) automatically use `.env.local` for local development.
+> - **Production scripts** (`npm run start`, `npm run prod:start`, `npm run db:migrate:prod`) rely on system environment variables or a standard `.env` file.
+
+**Via Command Line:**
 # Start both processes
 npm run prod:start
 
 # Check status
 npm run prod:status
-```
 
 In your server panel, select `ecosystem.config.js` as the startup file under the **PM2 Project** settings.
+
+---
+
+## Script Environment Reference
+
+| Use Case | Environment File | Priority |
+|----------|-----------------|----------|
+| **Local Development** | `.env.local` | Highest (via `dotenv-cli`) |
+| **Production (Standard)** | `.env` | Default (standard Node/Next behavior) |
+| **Production (Panel)** | System Env | Top Priority (Panel injected) |
 
 ---
 

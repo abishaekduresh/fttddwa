@@ -14,7 +14,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 - **Automation Helpers**: New npm scripts for production control (`prod:start`, `prod:status`, `prod:restart`, `prod:stop`).
 
 ### Changed
-- **Environment**: Updated the worker and database scripts to be more flexible with environment file naming (`.env` vs `.env.local`).
+- **Environment**: Refined npm scripts to distinguish between Development and Production:
+    - **Development Scripts**: (`dev`, `db:migrate`, `db:seed`, etc.) now automatically use `.env.local` via `dotenv-cli`.
+    - **Production Scripts**: (`start`, `prod:start`, `db:migrate:prod`, etc.) now rely on the standard environment (system env vars or `.env`), making them compatible with server control panels.
+- **Worker**: Updated `worker.ts` to check for `.env.local` (local dev) first, then fall back to `.env` (production).
 
 ---
 
