@@ -2,8 +2,9 @@ module.exports = {
   apps: [
     {
       name: "fttddwa-web",
-      script: "node_modules/next/dist/bin/next",
+      script: "npm",
       args: "start",
+      cwd: "./",
       instances: 1,
       autorestart: true,
       watch: false,
@@ -11,22 +12,18 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: 3000
-      },
-      env_production: {
-        NODE_ENV: "production"
       }
     },
     {
       name: "fttddwa-worker",
-      script: "dist/worker/worker.js",
+      script: "node",
+      args: "dist/worker/worker.js",
+      cwd: "./",
       instances: 1,
       autorestart: true,
       watch: false,
       max_memory_restart: "500M",
       env: {
-        NODE_ENV: "production"
-      },
-      env_production: {
         NODE_ENV: "production"
       }
     }
