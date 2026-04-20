@@ -94,6 +94,16 @@ The system deducts 1 credit per message sent. Credit tracking is automated, and 
 > If you see `EPERM: operation not permitted, rename...` when running `npm run db:migrate` or `db:generate`, it means the Prisma Query Engine is currently locked by a running process.
 > **Fix:** Stop the `npm run dev` server and the `npm run worker` before running database commands. Restart them once the command completes.
 
+> [!IMPORTANT]
+> **npm Error 404 / Registry Issue**
+> If you see `npm error 404 Not Found` when installing packages (e.g. `@hookform/resolvers`), your server might be configured to use a private registry.
+> **Fix:** Reset the npm registry and clear the cache:
+> ```bash
+> npm config set registry https://registry.npmjs.org/
+> rm -rf node_modules package-lock.json
+> npm install
+> ```
+
 ---
 
 ## Docker Deployment
