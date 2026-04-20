@@ -69,9 +69,14 @@ This handles automated birthday/anniversary reminders and processes the WhatsApp
 The system includes a dedicated background worker to process WhatsApp messages and run automated daily tasks (Birthday/Anniversary greetings).
 
 ### 1. Launching the Worker
-In production, the worker should run as a separate process from the web server:
+In production, the worker should run alongside the web server. The recommended way is using **PM2**:
 ```bash
-npm run worker
+# Start both Web + Worker
+npm run prod:start
+```
+Or manually:
+```bash
+npm run worker:start
 ```
 
 ### 2. Cron Configuration
@@ -113,6 +118,39 @@ docker compose exec app npm run db:seed
 ### 4. Access the application
 - App: http://localhost
 - DB: localhost:3306
+- phpMyAdmin: http://localhost:8081
+
+---
+
+## Production Deployment (Standard VPS / Panel)
+
+If you are deploying on a VPS (like Ubuntu/CentOS) or using a server panel (aPanel/BT.cn), use this flow:
+
+### 1. Build Phase
+```bash
+npm install
+npm run build
+npm run worker:build
+npm run db:migrate:prod
+```
+
+### 2. Startup Phase (PM2)
+The project includes an `ecosystem.config.js` to manage both the Next.js app and the background worker.
+
+**Via Command Line:**
+```bash
+# Start both processes
+npm run prod:start
+
+# Monitor status
+npm run prod:status
+
+# To see logs
+pm2 logs
+```
+
+**Via Server Panel:**
+Select `ecosystem.config.js` as the project's startup script in the **PM2 Project** settings.
 
 ---
 

@@ -6,11 +6,19 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
-## [1.3.0] — 2026-04-19
+## [1.3.1] — 2026-04-20
 
 ### Added
-- **Database Management**: Integrated **phpMyAdmin** into the Docker Compose stack for easier web-based database administration (accessible on port 8081).
-- **Environment**: Added `UPLOAD_LIMIT` configuration to phpMyAdmin to support large database imports.
+- **Production Deployment**: Integrated **PM2 (Process Manager 2)** support with a dedicated `ecosystem.config.js`.
+- **Process Management**: Configuration to manage both the Next.js Web Server and the Background Worker simultaneously.
+- **Automation Helpers**: New npm scripts for production control (`prod:start`, `prod:status`, `prod:restart`, `prod:stop`).
+
+### Changed
+- **Environment**: Updated the worker and database scripts to be more flexible with environment file naming (`.env` vs `.env.local`).
+
+---
+
+## [1.3.0] — 2026-04-19
 
 ---
 
@@ -162,6 +170,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.3.1 | 2026-04-20 | PM2 Production Support & Deployment Optimization |
 | 1.3.0 | 2026-04-19 | Integrated phpMyAdmin for database management |
 | 1.2.0 | 2026-04-19 | WhatsApp Module, Credit Tracking, IST Automation, and Deployment Refinement |
 | 1.1.0 | 2026-04-17 | Added Wedding Date field and enhanced member details view |
@@ -169,7 +178,8 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/your-org/fttddwa/releases/tag/v1.3.1
 [1.3.0]: https://github.com/your-org/fttddwa/releases/tag/v1.3.0
 [1.2.0]: https://github.com/your-org/fttddwa/releases/tag/v1.2.0
 [1.1.0]: https://github.com/your-org/fttddwa/releases/tag/v1.1.0

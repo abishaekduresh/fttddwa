@@ -131,6 +131,32 @@ Access at:
 
 ---
 
+## Production Deployment (Standard VPS / Panel)
+
+If you are not using Docker (e.g., deploying on a VPS with a control panel like aPanel/BT.cn), use **PM2** to manage the multiple processes.
+
+### 1. Initial Build
+```bash
+npm install
+npm run build
+npm run worker:build
+npm run db:migrate:prod
+```
+
+### 2. Start with PM2
+The project includes an `ecosystem.config.js` to manage both the Web Server and the Worker.
+```bash
+# Start both processes
+npm run prod:start
+
+# Check status
+npm run prod:status
+```
+
+In your server panel, select `ecosystem.config.js` as the startup file under the **PM2 Project** settings.
+
+---
+
 ## Project Structure
 
 ```
@@ -242,16 +268,13 @@ Interactive Swagger UI: [http://localhost:3000/api/docs](http://localhost:3000/a
 ```bash
 npm run dev               # Start development server
 npm run build             # Type-check + Prisma generate + build
-npm run start             # Start production server
-npm run lint              # ESLint
-npm run type-check        # TypeScript check (no emit)
-npm run db:migrate        # Run Prisma migrations (dev)
+npm run start             # Start production server (Next.js only)
+npm run worker:start      # Start production worker (Worker only)
+npm run prod:start        # Start BOTH Web + Worker via PM2
+npm run prod:status       # Check PM2 process status
 npm run db:migrate:prod   # Run Prisma migrations (production)
 npm run db:seed           # Seed database
-npm run db:studio         # Open Prisma Studio
-npm run db:reset          # Reset database (dev only!)
 npm test                  # Run Jest tests
-npm run test:coverage     # Tests with coverage report
 ```
 
 ---

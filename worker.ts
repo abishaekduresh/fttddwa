@@ -16,8 +16,9 @@
 import * as dotenv from "dotenv";
 import * as path from "path";
 
-// Load .env.local before any other imports
+// Load environment variables. Priorities: .env.local (dev), then .env (prod)
 dotenv.config({ path: path.join(__dirname, ".env.local") });
+dotenv.config({ path: path.join(__dirname, ".env") });
 
 // Use require for ts-node CommonJS compatibility with path aliases
 // eslint-disable-next-line @typescript-eslint/no-var-requires
