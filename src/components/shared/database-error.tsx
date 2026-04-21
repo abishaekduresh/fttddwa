@@ -28,7 +28,7 @@ export function DatabaseError() {
               Database Connection Lost
             </h1>
             <p className="text-slate-600 mb-8 leading-relaxed">
-              We're having trouble connecting to our database server. This might
+              We&apos;re having trouble connecting to our database server. This might
               be due to scheduled maintenance or a temporary service outage.
             </p>
 
