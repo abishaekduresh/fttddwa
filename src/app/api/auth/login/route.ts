@@ -4,7 +4,7 @@ import { loginSchema } from "@/lib/validation/auth.schema";
 import { error, serverError } from "@/lib/api/response";
 import { getClientIp } from "@/lib/security/rate-limiter";
 
-const IS_PROD = process.env.NODE_ENV === "production";
+const IS_PROD = process.env.APP_ENV === "production";
 
 export async function POST(req: NextRequest) {
   try {

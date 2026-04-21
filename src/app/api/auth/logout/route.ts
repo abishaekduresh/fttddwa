@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   const response = NextResponse.json({ success: true, message: "Logged out" });
 
-  const IS_PROD = process.env.NODE_ENV === "production";
+  const IS_PROD = process.env.APP_ENV === "production";
   const expired = new Date(0); // Unix epoch — forces immediate expiry in all browsers
 
   response.cookies.set("access_token", "", {

@@ -44,7 +44,7 @@ export function notFound(message = "Not found"): NextResponse<ApiResponse> {
 }
 
 export function serverError(err?: unknown): NextResponse<ApiResponse> {
-  const isDev = process.env.NODE_ENV !== "production";
+  const isDev = process.env.APP_ENV !== "production";
 
   if (isDev && err != null) {
     const message = err instanceof Error ? err.message : String(err);
