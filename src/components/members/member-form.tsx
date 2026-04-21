@@ -40,6 +40,7 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
     formState: { errors },
     setValue,
     watch,
+    setError,
   } = useForm<CreateMemberInput>({
     resolver: zodResolver(createMemberSchema),
     defaultValues: {

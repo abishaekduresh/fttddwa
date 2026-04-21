@@ -22,7 +22,7 @@ export interface WaTemplateFromVendor {
   headerText?: string;
   headerFormat?: string;
   footerText?: string;
-  buttons?: any[];
+  buttons?: unknown[];
 }
 
 export interface WaSendResult {
