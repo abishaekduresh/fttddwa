@@ -19,6 +19,27 @@ const PERMANENT_ERROR_CODES = new Set([
   "VALIDATION_ERROR",
 ]);
 
+interface SendAdzTemplateComponent {
+  type: string;
+  text?: string;
+  format?: string;
+  buttons?: unknown[];
+}
+
+interface SendAdzTemplateItem {
+  name?: string;
+  template_name?: string;
+  language?: string;
+  category?: string;
+  status?: string;
+  body_data?: string;
+  header_data_text?: string;
+  header_data_format?: string;
+  footer_data?: string;
+  buttons_data?: string | unknown[];
+  components?: SendAdzTemplateComponent[];
+}
+
 export class SendAdzVendor implements IWhatsAppVendor {
   constructor(
     private readonly apiBaseUrl: string,
@@ -152,13 +173,14 @@ export class SendAdzVendor implements IWhatsAppVendor {
     const data = await res.json();
     const items: unknown[] = data?.templates || data?.data || data?.waba_templates || [];
 
-    return items.map((t: any) => {
-      const { body, variables, headerText, headerFormat, footerText, buttons } = extractTemplateInfo(t);
+    return items.map((t: unknown) => {
+      const item = t as SendAdzTemplateItem;
+      const { body, variables, headerText, headerFormat, footerText, buttons } = extractTemplateInfo(item);
       return {
-        name: t.name || t.template_name,
-        language: t.language || "en",
-        category: (t.category || "custom").toLowerCase(),
-        status: t.status || "APPROVED",
+        name: item.name || item.template_name || "",
+        language: item.language || "en",
+        category: (item.category || "custom").toLowerCase(),
+        status: item.status || "APPROVED",
         variables,
         body,
         headerText,
@@ -184,40 +206,40 @@ export class SendAdzVendor implements IWhatsAppVendor {
     };
   }
 
-  async getMessageStatus(messageId: string): Promise<WaStatusResult> {
+  async getMessageStatus(_messageId: string): Promise<WaStatusResult> {
     // Delivery status tracking not yet implemented for SendAdz
     // We return 'sent' as a fallback to avoid infinite polling if implementation is missing
     return { status: "sent" };
   }
 }
 
-function extractTemplateInfo(t: any): { 
-  body: string; 
+function extractTemplateInfo(t: SendAdzTemplateItem): {
+  body: string;
   variables: string[];
   headerText?: string;
   headerFormat?: string;
   footerText?: string;
-  buttons?: any[];
+  buttons?: unknown[];
 } {
   // Prioritize SendAdz specific fields from the user sample
-  const body = t.body_data || t.components?.find((c: any) => c.type === "BODY")?.text || "";
-  const headerText = t.header_data_text || t.components?.find((c: any) => c.type === "HEADER")?.text;
-  const headerFormat = t.header_data_format || t.components?.find((c: any) => c.type === "HEADER")?.format;
-  const footerText = t.footer_data || t.components?.find((c: any) => c.type === "FOOTER")?.text;
-  
-  let buttons: any[] = [];
+  const body = t.body_data || t.components?.find((c) => c.type === "BODY")?.text || "";
+  const headerText = t.header_data_text || t.components?.find((c) => c.type === "HEADER")?.text;
+  const headerFormat = t.header_data_format || t.components?.find((c) => c.type === "HEADER")?.format;
+  const footerText = t.footer_data || t.components?.find((c) => c.type === "FOOTER")?.text;
+
+  let buttons: unknown[] = [];
   try {
     if (t.buttons_data) {
-      buttons = typeof t.buttons_data === "string" ? JSON.parse(t.buttons_data) : t.buttons_data;
+      buttons = typeof t.buttons_data === "string" ? JSON.parse(t.buttons_data) : t.buttons_data as unknown[];
     } else {
-      buttons = t.components?.find((c: any) => c.type === "BUTTONS")?.buttons || [];
+      buttons = t.components?.find((c) => c.type === "BUTTONS")?.buttons || [];
     }
-  } catch (e) {
-    console.warn("Failed to parse buttons_data", e);
+  } catch (err) {
+    console.warn("Failed to parse buttons_data", err);
   }
 
   const matches = body.match(/\{\{(\d+)\}\}/g) || [];
   const variables = matches.map((m: string) => m.replace(/[{}]/g, ""));
-  
+
   return { body, variables, headerText, headerFormat, footerText, buttons };
 }

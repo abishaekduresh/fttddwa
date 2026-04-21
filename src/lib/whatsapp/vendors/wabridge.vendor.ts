@@ -14,6 +14,25 @@ interface WabridgeConfig {
   deviceId: string;
 }
 
+interface WabridgeTemplateComponent {
+  type: string;
+  text?: string;
+  format?: string;
+  buttons?: unknown[];
+}
+
+interface WabridgeTemplateItem {
+  components?: WabridgeTemplateComponent[];
+  content?: string;
+  name?: string;
+  template_id?: string;
+  id?: string | number;
+  language?: string;
+  category?: string;
+  template_type?: string;
+  status?: string;
+}
+
 export class WabridgeVendor implements IWhatsAppVendor {
   private config: WabridgeConfig;
 
@@ -23,7 +42,7 @@ export class WabridgeVendor implements IWhatsAppVendor {
   ) {
     try {
       this.config = JSON.parse(apiKeyJson);
-    } catch (e) {
+    } catch {
       throw new Error("Invalid WABridge configuration: API Key must be a JSON string containing appKey, authKey, and deviceId.");
     }
   }
@@ -87,7 +106,7 @@ export class WabridgeVendor implements IWhatsAppVendor {
     }
   }
 
-  async sendText(options: WaSendTextOptions): Promise<WaSendResult> {
+  async sendText(_options: WaSendTextOptions): Promise<WaSendResult> {
     // Note: WABridge documented API primarily focuses on templates.
     // We try to use a placeholder or check if they support a 'text' type message.
     // Based on generic WABridge docs, they might support 'media_type': 'text' but it's not in the snippet provided.
@@ -118,20 +137,21 @@ export class WabridgeVendor implements IWhatsAppVendor {
       if (!res.ok) throw new Error(`Failed to fetch templates: HTTP ${res.status}`);
 
       const json = await res.json();
-      const items = Array.isArray(json.data) ? json.data : [];
+      const items: unknown[] = Array.isArray(json.data) ? json.data : [];
 
-      return items.map((t: any) => {
-        let body = "";
+      return items.map((t: unknown) => {
+        const item = t as WabridgeTemplateItem;
+        let bodyText = "";
         let headerText: string | undefined;
         let headerFormat: string | undefined;
         let footerText: string | undefined;
-        let buttons: any[] = [];
+        let buttons: unknown[] = [];
 
-        if (Array.isArray(t.components)) {
-          for (const comp of t.components) {
+        if (Array.isArray(item.components)) {
+          for (const comp of item.components) {
             switch (comp.type) {
               case "BODY":
-                body = comp.text || "";
+                bodyText = comp.text || "";
                 break;
               case "HEADER":
                 headerText = comp.text;
@@ -147,24 +167,24 @@ export class WabridgeVendor implements IWhatsAppVendor {
           }
         } else {
           // Fallback to legacy fields if components missing
-          body = t.content || "";
+          bodyText = item.content || "";
         }
 
         // Variable extraction (matches {{1}}, {{2}}, etc) from all text parts
-        const combinedText = `${headerText || ""} ${body} ${footerText || ""}`;
+        const combinedText = `${headerText || ""} ${bodyText} ${footerText || ""}`;
         const matches = combinedText.match(/\{\{(\d+)\}\}/g) || [];
         // Unique variables sorted by index
         const variables = Array.from(new Set(matches.map((m: string) => m.replace(/[{}]/g, ""))))
           .sort((a, b) => parseInt(a) - parseInt(b));
 
         return {
-          name: t.name || t.template_id,        // human-readable name stored in templateName
-          vendorTemplateId: String(t.id || ""), // numeric ID used as template_id when sending
-          language: t.language || "en",
-          category: (t.category || t.template_type || "custom").toLowerCase(),
-          status: (t.status || "APPROVED").toUpperCase(),
+          name: item.name || item.template_id || "",  // human-readable name stored in templateName
+          vendorTemplateId: String(item.id || ""),    // numeric ID used as template_id when sending
+          language: item.language || "en",
+          category: (item.category || item.template_type || "custom").toLowerCase(),
+          status: (item.status || "APPROVED").toUpperCase(),
           variables,
-          body,
+          body: bodyText,
           headerText,
           headerFormat,
           footerText,
