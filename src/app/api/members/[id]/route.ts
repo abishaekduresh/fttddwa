@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { getMemberById, updateMember, deleteMember } from "@/lib/services/member.service";
+import { getMemberById, updateMember, deleteMember, parseMemberUniqueError } from "@/lib/services/member.service";
 import { updateMemberSchema } from "@/lib/validation/member.schema";
 import { ok, error, forbidden, notFound, serverError } from "@/lib/api/response";
 import { createAuditLog } from "@/lib/services/audit.service";
@@ -57,7 +57,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     });
 
     return ok(updated, "Member updated");
-  } catch {
+  } catch (err) {
+    const uniqueErrors = parseMemberUniqueError(err);
+    if (uniqueErrors) return error("Duplicate value", 409, uniqueErrors);
     return serverError();
   }
 }

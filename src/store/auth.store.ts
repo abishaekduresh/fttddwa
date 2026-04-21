@@ -47,7 +47,11 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     try {
       await fetch("/api/auth/logout", { method: "POST" });
     } catch {
-      // Ignore — cookies are cleared server-side; local state already wiped
+      // Ignore network errors — server clears cookies; local state already wiped
+    } finally {
+      // Hard redirect so the browser discards all in-memory state and
+      // the middleware's token check runs fresh on the login page.
+      window.location.href = "/login";
     }
   },
 }));

@@ -1,7 +1,18 @@
 import { prisma } from "@/lib/prisma";
-import { MemberStatus } from "@prisma/client";
+import { Prisma, MemberStatus } from "@prisma/client";
 import { generateMembershipId } from "@/lib/utils/membership-id";
 import { sanitizeText } from "@/lib/security/sanitizer";
+
+/** Returns field-level errors if a P2002 unique constraint was violated, otherwise null. */
+export function parseMemberUniqueError(err: unknown): Record<string, string[]> | null {
+  if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== "P2002") return null;
+  const raw = err.meta?.target;
+  const targets = (Array.isArray(raw) ? raw.join(",") : String(raw ?? "")).toLowerCase();
+  const errors: Record<string, string[]> = {};
+  if (targets.includes("phone")) errors.phone = ["This phone number is already registered to another member."];
+  if (targets.includes("email")) errors.email = ["This email address is already registered to another member."];
+  return Object.keys(errors).length ? errors : null;
+}
 
 export interface CreateMemberInput {
   name: string;

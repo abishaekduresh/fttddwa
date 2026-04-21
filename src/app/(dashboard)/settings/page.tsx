@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { Eye, EyeOff, Loader2, Lock, User, Building2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, User, Building2, SlidersHorizontal } from "lucide-react";
 import toast from "react-hot-toast";
 import { AssociationSettingsForm } from "@/components/settings/association-settings-form";
 
 export default function SettingsPage() {
   const { user, hasPermission } = useAuthStore();
-  const [tab, setTab] = useState<"profile" | "security" | "association">("profile");
+  const [tab, setTab] = useState<"profile" | "security" | "association" | "app">("profile");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -16,14 +16,48 @@ export default function SettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [assocSettings, setAssocSettings] = useState<any>(null);
   const [loadingAssoc, setLoadingAssoc] = useState(false);
+  const [appSettings, setAppSettings] = useState<{ enableMemberRegistration: boolean } | null>(null);
+  const [savingApp, setSavingApp] = useState(false);
 
   const canManageAssoc = hasPermission("association:manage");
+  const canManageApp = hasPermission("app_settings:manage") || user?.role === "SUPER_ADMIN";
 
   useEffect(() => {
     if (canManageAssoc && tab === "association" && !assocSettings) {
       loadAssocSettings();
     }
   }, [tab, canManageAssoc, assocSettings]);
+
+  useEffect(() => {
+    if (canManageApp && tab === "app" && !appSettings) {
+      fetch("/api/settings/app")
+        .then((r) => r.json())
+        .then((j) => { if (j.success) setAppSettings(j.data); })
+        .catch(() => toast.error("Failed to load app settings"));
+    }
+  }, [tab, canManageApp, appSettings]);
+
+  const handleToggleAppSetting = async (key: string, value: boolean) => {
+    setSavingApp(true);
+    try {
+      const res = await fetch("/api/settings/app/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAppSettings((prev) => prev ? { ...prev, [key]: value } : prev);
+        toast.success("Setting updated");
+      } else {
+        toast.error(json.message || "Failed to update setting");
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setSavingApp(false);
+    }
+  };
 
   const loadAssocSettings = async () => {
     setLoadingAssoc(true);
@@ -80,6 +114,7 @@ export default function SettingsPage() {
     { key: "profile", label: "Profile", icon: User, show: true },
     { key: "security", label: "Security", icon: Lock, show: true },
     { key: "association", label: "Association", icon: Building2, show: canManageAssoc },
+    { key: "app", label: "App Settings", icon: SlidersHorizontal, show: canManageApp },
   ].filter(t => t.show);
 
   return (
@@ -180,6 +215,51 @@ export default function SettingsPage() {
           ) : !loadingAssoc && (
             <div className="py-10 text-center">
               <button onClick={loadAssocSettings} className="btn btn-secondary text-sm">Retry Loading</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab === "app" && (
+        <div className="card p-6 animate-in fade-in duration-300 space-y-4">
+          <div>
+            <h2 className="font-semibold text-slate-900">App Settings</h2>
+            <p className="text-xs text-slate-500">Control which features are publicly accessible.</p>
+          </div>
+
+          {!appSettings ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 size={20} className="animate-spin text-slate-400" />
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {/* Member Registration toggle */}
+              <div className="flex items-start justify-between py-4 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-slate-900">Public Member Registration</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Allow anyone to self-register at{" "}
+                    <span className="font-mono text-slate-600">/members/register</span>.
+                    Disable to prevent new self-registrations.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={savingApp}
+                  onClick={() => handleToggleAppSetting("enableMemberRegistration", !appSettings.enableMemberRegistration)}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                    appSettings.enableMemberRegistration ? "bg-primary" : "bg-slate-300"
+                  }`}
+                  role="switch"
+                  aria-checked={appSettings.enableMemberRegistration}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ${
+                      appSettings.enableMemberRegistration ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           )}
         </div>

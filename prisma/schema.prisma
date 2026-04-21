@@ -103,8 +103,8 @@ model Member {
   taluk             String       @db.VarChar(100)
   industry          String?      @db.VarChar(150)
   dateOfBirth       DateTime?
-  phone             String       @db.VarChar(15)
-  email             String?      @db.VarChar(255)
+  phone             String       @unique @db.VarChar(15)
+  email             String?      @unique @db.VarChar(191)
   photoUrl          String?      @db.VarChar(500)
   status            MemberStatus @default(ACTIVE)
   joinedAt          DateTime     @default(now())
@@ -127,7 +127,6 @@ model Member {
 
   @@index([district])
   @@index([taluk])
-  @@index([phone])
   @@index([status])
   @@index([membershipId])
   @@index([createdById], map: "members_createdById_fkey")
@@ -172,9 +171,10 @@ model AssociationSetting {
   addressTamil   String?  @db.Text
   state          String?  @db.VarChar(100)
   stateTamil     String?  @db.VarChar(100)
-  email          String?  @db.VarChar(255)
-  phone          String?  @db.VarChar(20)
-  updatedAt      DateTime @updatedAt
+  email                    String?  @db.VarChar(255)
+  phone                    String?  @db.VarChar(20)
+  enableMemberRegistration Boolean  @default(true)
+  updatedAt                DateTime @updatedAt
 
   @@map("association_settings")
 }
@@ -325,6 +325,8 @@ model WhatsappSettings {
   anniversaryVariables  Json?
   countryCode           String            @default("+91") @db.VarChar(10)
   countryName           String            @default("India") @db.VarChar(100)
+  enableExternalCron    Boolean           @default(true)
+  externalCronSecret    String?           @db.VarChar(100)
   updatedAt             DateTime          @updatedAt
   activeVendor          WhatsappVendor?   @relation(fields: [activeVendorId], references: [id])
   birthdayTemplate      WhatsappTemplate? @relation("BirthdayTemplate", fields: [birthdayTemplateId], references: [id])

@@ -13,19 +13,39 @@ import { ok, error, serverError } from "@/lib/api/response";
 import { runWhatsAppCron } from "@/lib/services/whatsapp-cron.service";
 import { syncWhatsAppMessageStatuses } from "@/lib/services/whatsapp-status.service";
 import { createAuditLog } from "@/lib/services/audit.service";
+import { getWhatsappSettings } from "@/lib/services/whatsapp-settings.service";
+
+export async function GET(req: NextRequest) {
+  return handleTrigger(req, "GET");
+}
 
 export async function POST(req: NextRequest) {
+  return handleTrigger(req, "POST");
+}
+
+async function handleTrigger(req: NextRequest, method: string) {
   try {
-    const cronSecret = process.env.WHATSAPP_CRON_SECRET;
+    const settings = await getWhatsappSettings();
+    const envSecret = process.env.WHATSAPP_CRON_SECRET;
+    const dbSecret = settings.externalCronSecret;
 
     // Allow: correct cron secret (for scheduler/worker) OR SUPER_ADMIN JWT (for admin UI)
-    const providedSecret = req.headers.get("x-cron-secret");
+    const providedSecret = req.headers.get("x-cron-secret") || req.nextUrl.searchParams.get("secret");
     const role = req.headers.get("x-user-role");
 
-    const isSchedulerCall = cronSecret && providedSecret === cronSecret;
+    const isExternalAuthorized = 
+      settings.enableExternalCron && 
+      (
+        (dbSecret && providedSecret === dbSecret) || 
+        (!dbSecret && envSecret && providedSecret === envSecret)
+      );
+    
     const isAdminCall = role === "SUPER_ADMIN" || role === "ADMIN";
 
-    if (!isSchedulerCall && !isAdminCall) {
+    if (!isExternalAuthorized && !isAdminCall) {
+      if (!settings.enableExternalCron && providedSecret) {
+        return error("External cron trigger is currently disabled in settings", 403);
+      }
       return error("Unauthorized", 401);
     }
 

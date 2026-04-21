@@ -41,6 +41,9 @@ export default function EditMemberPage() {
         toast.success("Member updated successfully");
         router.push(`/members/${params.id}`);
       } else {
+        if (res.status === 409 && json.errors) {
+          return { fieldErrors: json.errors as Record<string, string[]> };
+        }
         toast.error(json.message || "Update failed");
       }
     } catch {

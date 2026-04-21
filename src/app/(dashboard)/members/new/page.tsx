@@ -27,6 +27,9 @@ export default function NewMemberPage() {
         toast.success(`Member ${json.data.membershipId} created successfully!`);
         router.push(`/members/${json.data.id}`);
       } else {
+        if (res.status === 409 && json.errors) {
+          return { fieldErrors: json.errors as Record<string, string[]> };
+        }
         if (json.errors) {
           const firstError = Object.values(json.errors as Record<string, string[]>)[0]?.[0];
           toast.error(firstError || json.message);

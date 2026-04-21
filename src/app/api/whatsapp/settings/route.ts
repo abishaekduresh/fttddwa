@@ -15,8 +15,11 @@ export async function GET(req: NextRequest) {
       return forbidden();
     }
 
-    const settings = await getWhatsappSettings();
-    return ok(settings);
+    const settings: any = await getWhatsappSettings();
+    return ok({
+      ...settings,
+      cronSecret: settings.externalCronSecret || process.env.WHATSAPP_CRON_SECRET || ""
+    });
   } catch (err) {
     return serverError(err);
   }

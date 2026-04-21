@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { put } from "@vercel/blob";
 import sharp from "sharp";
 import { forbidden, error, serverError } from "@/lib/api/response";
 import { createAuditLog } from "@/lib/services/audit.service";
@@ -31,9 +30,7 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Determine dimensions and directory based on type
-    // branding: 1080x1080 square
-    // member: 600x771 portrait (passport)
+    // branding: 1080x1080 square | member: 600x771 portrait (passport)
     let width = 600;
     let height = 771;
     let subDir = "members";
@@ -45,22 +42,16 @@ export async function POST(req: NextRequest) {
     }
 
     const processedBuffer = await sharp(buffer)
-      .resize(width, height, {
-        fit: "cover",
-        position: "center",
-      })
+      .resize(width, height, { fit: "cover", position: "center" })
       .webp({ quality: 85 })
       .toBuffer();
 
-    // Generate unique filename (.webp)
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
-    const uploadDir = path.join(process.cwd(), "uploads", subDir);
 
-    await mkdir(uploadDir, { recursive: true });
-    const filePath = path.join(uploadDir, filename);
-    await writeFile(filePath, processedBuffer);
-
-    const url = `/api/files/${subDir}/${filename}`;
+    const blob = await put(`${subDir}/${filename}`, processedBuffer, {
+      access: "public",
+      contentType: "image/webp",
+    });
 
     await createAuditLog({
       userId: parseInt(req.headers.get("x-user-id") || "0") || undefined,
@@ -70,7 +61,7 @@ export async function POST(req: NextRequest) {
       newValues: { filename, type },
     });
 
-    return NextResponse.json({ success: true, data: { url, filename } });
+    return NextResponse.json({ success: true, data: { url: blob.url, filename } });
   } catch (err) {
     console.error("Upload error:", err);
     return serverError();

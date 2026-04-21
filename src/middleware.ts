@@ -2,17 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAccessToken } from "@/lib/jwt";
 import { rateLimit, getClientIp } from "@/lib/security/rate-limiter";
 
+// Prefix-matched public paths (any sub-path also passes)
 const PUBLIC_PATHS = [
   "/login",
   "/forgot-password",
+  "/members/register",
   "/api/auth/login",
   "/api/auth/refresh",
   "/api/auth/logout",  // Must be public — user may have an expired access token when logging out
   "/api/health",
   "/api/docs",
-  "/api/docs/yaml",
   "/api/files",
   "/api/whatsapp/webhook",
+  "/api/members/register",
+  "/api/whatsapp/cron/trigger",
+];
+
+// Exact-matched public paths (only the exact URL is public, sub-paths are protected)
+const PUBLIC_EXACT_PATHS = [
+  "/api/settings/app",
 ];
 
 const AUTH_API_PATHS = ["/api/auth/login", "/api/auth/refresh"];
@@ -61,8 +69,20 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Skip auth for public paths
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  // Auth pages: redirect to dashboard if a valid access_token already exists
+  if (pathname === "/login" || pathname === "/forgot-password") {
+    const token = req.cookies.get("access_token")?.value;
+    if (token) {
+      const payload = await verifyAccessToken(token);
+      if (payload) {
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+    }
+    return NextResponse.next();
+  }
+
+  // Skip auth for all other public paths
+  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p)) || PUBLIC_EXACT_PATHS.includes(pathname)) {
     return NextResponse.next();
   }
 

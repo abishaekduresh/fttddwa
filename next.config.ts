@@ -2,7 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ["localhost"],
+    remotePatterns: [
+      { hostname: "localhost" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
+    ],
     formats: ["image/webp", "image/avif"],
   },
   async headers() {
@@ -40,7 +43,6 @@ const nextConfig: NextConfig = {
     ];
   },
   serverExternalPackages: ["pdfkit", "sharp"],
-  output: "standalone",
 };
 
 export default nextConfig;

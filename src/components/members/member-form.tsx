@@ -13,7 +13,7 @@ import { translateToTamil } from "@/lib/utils/translation";
 
 interface MemberFormProps {
   defaultValues?: Partial<CreateMemberInput> & { photoUrl?: string };
-  onSubmit: (data: CreateMemberInput & { photoUrl?: string }) => Promise<void>;
+  onSubmit: (data: CreateMemberInput & { photoUrl?: string }) => Promise<{ fieldErrors?: Record<string, string[]> } | void>;
   loading?: boolean;
   submitLabel?: string;
 }
@@ -21,13 +21,18 @@ interface MemberFormProps {
 export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Save Member" }: MemberFormProps) {
   const [photoUrl, setPhotoUrl] = useState(defaultValues?.photoUrl || "");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [selectedDistrict, setSelectedDistrict] = useState(defaultValues?.district || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Check if the current position is in the predefined list
   const initialPosition = defaultValues?.position || "Member";
   const isInitiallyOther = initialPosition && !ASSOCIATION_POSITIONS.includes(initialPosition as any) && initialPosition !== "Other";
   const [customPosition, setCustomPosition] = useState(isInitiallyOther ? initialPosition : "");
+
+  // "Others" district handling
+  const allKnownDistricts = Object.values(STATE_CONFIG).flatMap((s) => Object.keys(s));
+  const isInitiallyOtherDistrict = !!(defaultValues?.district && !allKnownDistricts.includes(defaultValues.district));
+  const [isOtherDistrict, setIsOtherDistrict] = useState(isInitiallyOtherDistrict);
+  const [districtSelect, setDistrictSelect] = useState(isInitiallyOtherDistrict ? "Others" : (defaultValues?.district || ""));
 
   const {
     register,
@@ -141,7 +146,13 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
     if (data.position === "Other") {
       finalData.position = customPosition;
     }
-    await onSubmit({ ...finalData, photoUrl });
+    const result = await onSubmit({ ...finalData, photoUrl });
+    if (result?.fieldErrors) {
+      for (const [field, messages] of Object.entries(result.fieldErrors)) {
+        setError(field as keyof CreateMemberInput, { message: messages[0] });
+        toast.error(messages[0]);
+      }
+    }
   };
 
   const districtsData = STATE_CONFIG[state as keyof typeof STATE_CONFIG] || {};
@@ -318,10 +329,20 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
           <label className="form-label">Phone Number (தொலைபேசி) *</label>
           <input
             type="tel"
+            inputMode="numeric"
             maxLength={10}
             className={`form-input ${errors.phone ? "form-input-error" : ""}`}
-            {...register("phone")}
             placeholder="9XXXXXXXXX"
+            {...(() => {
+              const { onChange, ...rest } = register("phone");
+              return {
+                ...rest,
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                  e.target.value = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  onChange(e);
+                },
+              };
+            })()}
           />
           {errors.phone && <p className="text-red-600 text-xs mt-1">{errors.phone.message}</p>}
         </div>
@@ -343,6 +364,8 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
               setValue("district", "");
               setValue("taluk", "");
               setValue("village", "");
+              setDistrictSelect("");
+              setIsOtherDistrict(false);
             }}
           >
             {Object.keys(STATE_CONFIG).map((s) => (
@@ -353,33 +376,80 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
         </div>
         <div>
           <label className="form-label">District (மாவட்டம்) *</label>
-          <select
-            className={`form-input ${errors.district ? "form-input-error" : ""}`}
-            {...register("district")}
-            onChange={(e) => {
-              setValue("district", e.target.value);
-              setValue("taluk", "");
-              setValue("village", "");
-            }}
-          >
-            <option value="">Select District</option>
-            {districts.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
+          {isOtherDistrict ? (
+            <div className="space-y-2">
+              <select
+                className="form-input"
+                value="Others"
+                onChange={(e) => {
+                  if (e.target.value !== "Others") {
+                    setIsOtherDistrict(false);
+                    setDistrictSelect(e.target.value);
+                    setValue("district", e.target.value);
+                    setValue("taluk", "");
+                  }
+                }}
+              >
+                {districts.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+                <option value="Others">Others</option>
+              </select>
+              <input
+                type="text"
+                className={`form-input ${errors.district ? "form-input-error" : ""}`}
+                {...register("district")}
+                placeholder="Enter district name"
+                autoFocus
+              />
+            </div>
+          ) : (
+            <select
+              className={`form-input ${errors.district ? "form-input-error" : ""}`}
+              value={districtSelect}
+              onChange={(e) => {
+                const val = e.target.value;
+                setDistrictSelect(val);
+                if (val === "Others") {
+                  setIsOtherDistrict(true);
+                  setValue("district", "");
+                  setValue("taluk", "");
+                } else {
+                  setValue("district", val);
+                  setValue("taluk", "");
+                  setValue("village", "");
+                }
+              }}
+            >
+              <option value="">Select District</option>
+              {districts.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+              <option value="Others">Others</option>
+            </select>
+          )}
           {errors.district && <p className="text-red-600 text-xs mt-1">{errors.district.message}</p>}
         </div>
         <div>
           <label className="form-label">Taluk (தாலுகா) *</label>
-          <select
-            className={`form-input ${errors.taluk ? "form-input-error" : ""}`}
-            {...register("taluk")}
-          >
-            <option value="">Select Taluk</option>
-            {taluks.map((t: string) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
+          {isOtherDistrict ? (
+            <input
+              type="text"
+              className={`form-input ${errors.taluk ? "form-input-error" : ""}`}
+              {...register("taluk")}
+              placeholder="Enter taluk name"
+            />
+          ) : (
+            <select
+              className={`form-input ${errors.taluk ? "form-input-error" : ""}`}
+              {...register("taluk")}
+            >
+              <option value="">Select Taluk</option>
+              {taluks.map((t: string) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          )}
           {errors.taluk && <p className="text-red-600 text-xs mt-1">{errors.taluk.message}</p>}
         </div>
         <div>

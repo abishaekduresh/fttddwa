@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createMember, getMembers } from "@/lib/services/member.service";
+import { createMember, getMembers, parseMemberUniqueError } from "@/lib/services/member.service";
 import { createMemberSchema } from "@/lib/validation/member.schema";
 import { ok, created, error, forbidden, serverError, paginatedOk } from "@/lib/api/response";
 import { createAuditLog } from "@/lib/services/audit.service";
@@ -71,6 +71,8 @@ export async function POST(req: NextRequest) {
 
     return created(member, "Member created successfully");
   } catch (err) {
+    const uniqueErrors = parseMemberUniqueError(err);
+    if (uniqueErrors) return error("Duplicate value", 409, uniqueErrors);
     console.error("POST /members error:", err);
     return serverError();
   }

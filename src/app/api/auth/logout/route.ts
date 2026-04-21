@@ -22,10 +22,18 @@ export async function POST(req: NextRequest) {
   }
 
   const response = NextResponse.json({ success: true, message: "Logged out" });
-  
-  // Explicitly delete cookies from the root path
-  response.cookies.delete({ name: "access_token", path: "/" });
-  response.cookies.delete({ name: "refresh_token", path: "/" });
-  
+
+  const IS_PROD = process.env.NODE_ENV === "production";
+  const expired = new Date(0); // Unix epoch — forces immediate expiry in all browsers
+
+  response.cookies.set("access_token", "", {
+    httpOnly: true, secure: IS_PROD, sameSite: "strict",
+    path: "/", expires: expired, maxAge: 0,
+  });
+  response.cookies.set("refresh_token", "", {
+    httpOnly: true, secure: IS_PROD, sameSite: "strict",
+    path: "/", expires: expired, maxAge: 0,
+  });
+
   return response;
 }

@@ -3,6 +3,8 @@
 > **Federation of Tamil Nadu Tent Dealers & Decorators Welfare Association**
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
+>
+> **Version 1.4.0** | Deployable on Vercel + SiteGround MySQL
 
 ---
 
@@ -12,10 +14,11 @@
 - **Member Management** — Add, edit, delete, search, and filter members with Tamil + English name support
 - **Membership ID Generation** — Auto-generated IDs in format `FTTD{YY}{NNNNN}` (e.g. `FTTD260001`)
 - **Wedding Date Tracking** — Record and display anniversary dates for all members
+- **Public Self-Registration** — Members can register at `/members/register` (toggleable by admin); submitted records are created as `INACTIVE` pending approval
 - **WhatsApp Module** — Automated + Manual messaging with multi-vendor support, fallback logic, and real-time status tracking
 - **Membership Analytics** — Dashboard stats for membership growth and WhatsApp credit consumption
-- **Photo Upload** — Secure passport-size photo upload with type + size validation
-- **Tamil Nadu Coverage** — All 38 districts and their taluks pre-loaded
+- **Photo Upload** — Secure passport-size photo upload with type + size validation (stored in Vercel Blob)
+- **Tamil Nadu Coverage** — All 38 districts and their taluks pre-loaded; "Others" option for custom districts
 - **Export** — Download member data as formatted Excel (`.xlsx`)
 
 ### Authentication & Security
@@ -30,6 +33,7 @@
 - Real-time stats — total members, district-wise distribution, monthly growth
 - Recent member activity and audit event feed
 - Role-gated UI (buttons/sections hidden based on permissions)
+- **App Settings** — Toggle public member registration on/off (SUPER_ADMIN / ADMIN only)
 
 ### Audit & Compliance
 - Full audit log of every create/update/delete/login action
@@ -50,8 +54,9 @@
 | Forms | React Hook Form + `@hookform/resolvers` |
 | State | Zustand (auth store) |
 | Export | ExcelJS |
+| File Storage | Vercel Blob (`@vercel/blob`) |
 | Testing | Jest + ts-jest |
-| DevOps | Docker + Nginx |
+| DevOps | Vercel (serverless) + Docker + Nginx |
 
 ---
 
@@ -110,6 +115,48 @@ Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
+## Vercel + SiteGround Deployment
+
+The recommended production setup is **Vercel** (hosting) + **SiteGround** (MySQL database).
+
+### 1. Provision the database on SiteGround
+1. In cPanel → **MySQL Databases**: create a database and user.
+2. In cPanel → **Remote MySQL**: add `%` to allow Vercel connections.
+3. Import `database/database.sql` via phpMyAdmin — this creates all 15 tables in one shot.
+4. Run the seed script once (locally, pointing at SiteGround):
+   ```bash
+   DATABASE_URL="mysql://user:pass@sg-host:3306/dbname?ssl={\"rejectUnauthorized\":false}" npm run db:seed
+   ```
+
+### 2. Deploy to Vercel
+1. Push code to GitHub and connect the repo in the Vercel dashboard.
+2. Go to **Storage → Create → Blob store** and copy the `BLOB_READ_WRITE_TOKEN`.
+3. Set environment variables in Vercel project settings:
+
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | `mysql://user:pass@sg-host:3306/dbname?ssl={"rejectUnauthorized":false}&connection_limit=5` |
+| `JWT_SECRET` | 32+ random chars |
+| `JWT_REFRESH_SECRET` | 32+ random chars |
+| `ENCRYPTION_KEY` | exactly 32 chars |
+| `BLOB_READ_WRITE_TOKEN` | from Vercel Blob |
+| `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` |
+| `MEMBERSHIP_ID_PREFIX` | `FTTD` |
+| `NODE_ENV` | `production` |
+
+4. Deploy — Vercel runs `npm run build` (`prisma generate && next build`) automatically.
+
+### 3. WhatsApp cron via n8n
+The WhatsApp greeting cron is triggered by calling the public endpoint:
+```
+POST https://your-app.vercel.app/api/whatsapp/cron/trigger
+```
+Add an HTTP Request node in n8n scheduled at **09:00 IST (03:30 UTC)** daily.
+
+> **Worker note**: The background worker process (`worker.ts`) cannot run on Vercel. For WhatsApp job processing (sending queued messages), run the worker on a separate persistent server pointing at the same SiteGround database.
+
+---
+
 ## Docker Deployment
 
 ```bash
@@ -131,9 +178,7 @@ Access at:
 
 ---
 
-## Production Deployment (Standard VPS / Panel)
-
-If you are not using Docker (e.g., deploying on a VPS with a control panel like aPanel/BT.cn), use **PM2** to manage the multiple processes.
+## Production Deployment (VPS / Panel with PM2)
 
 ### 1. Initial Build
 ```bash
@@ -143,22 +188,13 @@ npm run worker:build
 npm run db:migrate:prod
 ```
 
-### 2. Startup Phase (PM2)
-The project includes an `ecosystem.config.js` to manage both the Next.js app and the background worker.
+### 2. Start with PM2
+```bash
+npm run prod:start   # Start both Next.js + Worker via PM2
+npm run prod:status  # Check status
+```
 
-> [!NOTE]
-> **Script Environments**:
-> - **Standard scripts** (`npm run dev`, `npm run db:migrate`) automatically use `.env.local` for local development.
-> - **Production scripts** (`npm run start`, `npm run prod:start`, `npm run db:migrate:prod`) rely on system environment variables or a standard `.env` file.
-
-**Via Command Line:**
-# Start both processes
-npm run prod:start
-
-# Check status
-npm run prod:status
-
-In your server panel, select `ecosystem.config.js` as the startup file under the **PM2 Project** settings.
+In your server panel, select `ecosystem.config.js` as the PM2 startup file.
 
 ---
 
@@ -167,8 +203,8 @@ In your server panel, select `ecosystem.config.js` as the startup file under the
 | Use Case | Environment File | Priority |
 |----------|-----------------|----------|
 | **Local Development** | `.env.local` | Highest (via `dotenv-cli`) |
-| **Production (Standard)** | `.env` | Default (standard Node/Next behavior) |
-| **Production (Panel)** | System Env | Top Priority (Panel injected) |
+| **Production (Standard / VPS)** | `.env` | Default |
+| **Production (Vercel / Panel)** | System / Dashboard Env Vars | Top Priority |
 
 ---
 
@@ -186,20 +222,24 @@ fttddwa/
 │   │   │   ├── users/           # User management
 │   │   │   ├── roles/           # Permission matrix viewer
 │   │   │   ├── audit-logs/      # Activity log
-│   │   │   └── settings/        # Profile & password
+│   │   │   └── settings/        # Profile, password, App Settings
+│   │   ├── members/
+│   │   │   └── register/        # Public self-registration page
 │   │   └── api/                 # REST API routes
 │   │       ├── auth/            # login, logout, refresh, me
-│   │       ├── members/         # CRUD + export + stats
+│   │       ├── members/         # CRUD + export + stats + register
+│   │       ├── settings/        # app (public GET), app/update (PATCH)
 │   │       ├── dashboard/       # Stats & activity aggregation
 │   │       ├── whatsapp/        # Logs, Stats, Send, DLR, Cron
+│   │       ├── upload/          # Photo upload → Vercel Blob
+│   │       ├── files/           # Local file serving (legacy)
 │   │       ├── users/           # CRUD
 │   │       ├── roles/           # List
 │   │       ├── audit-logs/      # List
-│   │       ├── health/          # Health check
-│   │       └── phpmyadmin/      # (Managed via Docker)
+│   │       └── health/          # Health check
 │   ├── components/
 │   │   ├── layout/              # Sidebar, Topbar
-│   │   └── members/             # MemberForm
+│   │   └── members/             # MemberForm (shared admin + public)
 │   ├── lib/
 │   │   ├── services/            # Business logic (auth, member, user, whatsapp)
 │   │   ├── whatsapp/            # Vendor factory, Queue, Processor
@@ -211,15 +251,18 @@ fttddwa/
 │   ├── hooks/                   # useAuth
 │   └── middleware.ts            # JWT verification + rate limiting
 ├── prisma/
-│   ├── schema.prisma            # DB schema (10+ models)
+│   ├── schema.prisma            # DB schema (15 models)
+│   ├── migrations/              # Prisma migration history
 │   └── seed.ts                  # Roles, permissions, super admin
+├── database/
+│   └── database.sql             # Complete MySQL schema (import to SiteGround)
 ├── tests/                       # Jest unit tests
 ├── docker/                      # Nginx config, MySQL init
 ├── docs/
-│   ├── api.md                   # API reference (Markdown)
-│   └── openapi.yaml             # OpenAPI 3.0 spec
+│   └── openapi.yaml             # OpenAPI 3.0 spec (Swagger UI at /api/docs)
 ├── docker-compose.yml
 ├── Dockerfile
+├── vercel.json                  # Vercel function config
 ├── SETUP.md                     # Detailed setup guide
 └── CHANGELOG.md
 ```
@@ -240,6 +283,7 @@ fttddwa/
 | View audit logs | ✅ | ✅ | ❌ | ❌ |
 | View roles | ✅ | ✅ | ❌ | ❌ |
 | Manage settings | ✅ | ❌ | ❌ | ❌ |
+| **App settings** | ✅ | ✅ | ❌ | ❌ |
 | Send WhatsApp | ✅ | ✅ | ✅ | ❌ |
 | Manage WhatsApp| ✅ | ✅ | ❌ | ❌ |
 
@@ -269,11 +313,15 @@ Interactive Swagger UI: [http://localhost:3000/api/docs](http://localhost:3000/a
 | `GET` | `/api/roles` | List roles |
 | `GET` | `/api/audit-logs` | List audit logs |
 | `GET` | `/api/dashboard/stats` | Dashboard stats |
-| `POST` | `/api/upload` | Upload photo |
+| `POST` | `/api/members/register` | Public member self-registration |
+| `POST` | `/api/upload` | Upload photo (→ Vercel Blob) |
+| `GET` | `/api/settings/app` | Public app settings (registration flag, branding) |
+| `PATCH` | `/api/settings/app/update` | Update app settings (Admin+) |
 | `GET` | `/api/whatsapp/logs` | List message logs |
 | `GET` | `/api/whatsapp/stats/usage` | Credit usage stats |
 | `POST` | `/api/whatsapp/send` | Manual message send |
 | `GET` | `/api/whatsapp/templates` | List templates |
+| `POST` | `/api/whatsapp/cron/trigger` | Trigger WhatsApp cron (n8n / external) |
 | `GET` | `/api/health` | Health check |
 
 ---

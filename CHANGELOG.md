@@ -6,6 +6,33 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [1.4.0] — 2026-04-21
+
+### Added
+- **Public Member Registration** — New public page at `/members/register` allowing prospective members to self-register without an admin account. Submitted records are created with `INACTIVE` status pending admin approval.
+- **Registration Toggle** — App Settings tab in `/settings` lets Super Admin and Admin enable or disable the public registration page via `enableMemberRegistration` flag.
+- **"Others" District Option** — Both the public registration form and the admin member form now include an "Others" option in the district dropdown. When selected, free-text inputs appear for custom district and taluk values.
+- **Phone & Email Uniqueness** — `members.phone` and `members.email` are now unique at the database level. Duplicate entries return field-level error toasts (top-right) with per-field messages.
+- **Phone Input Enforcement** — Phone number fields are restricted to 10 digits maximum, digits-only; non-numeric characters are stripped on input.
+- **`app_settings:manage` Permission** — Added permission and assigned to SUPER_ADMIN and ADMIN roles. Reflected in the `/roles` permissions matrix page.
+- **Vercel Deployment** — `vercel.json` added; file uploads now use **Vercel Blob** (`@vercel/blob`) making the app fully compatible with Vercel serverless.
+- **Database SQL Export** — `database/database.sql` — complete ready-to-import MySQL schema for fresh SiteGround or any MySQL database provisioning.
+- **n8n Cron Support** — WhatsApp cron trigger (`POST /api/whatsapp/cron/trigger`) documented as a public endpoint suitable for external schedulers such as n8n.
+
+### Changed
+- **Login Flow** — Login page auto-redirects to `/dashboard` if a valid session already exists (middleware-level). Stale cookies are cleared automatically on failed refresh.
+- **Logout** — Uses `maxAge: 0` + `expires: new Date(0)` for reliable cross-browser cookie expiry.
+- **File Storage** — `/api/upload` migrated from local `fs.writeFile` to Vercel Blob `put()`. `/api/files/` route retained for backward-compatible local file serving.
+- **next.config.ts** — Removed `output: "standalone"`. `images.domains` replaced with `remotePatterns` supporting Vercel Blob URLs.
+- **Middleware** — Separated `PUBLIC_PATHS` (prefix-match) from `PUBLIC_EXACT_PATHS` (exact-match) to prevent the settings update route from bypassing auth.
+
+### Fixed
+- **App Settings Permission Error** — Super Admin and Admin were seeing "Insufficient permissions" on the App Settings toggle due to a middleware prefix-match bug on the update route.
+- **Prisma P2002 TypeError** — MySQL returns unique constraint target as a string, not an array. `parseMemberUniqueError()` now handles both formats.
+- **MySQL Key Length** — `members.email` reduced from `VarChar(255)` to `VarChar(191)` to stay within the 1000-byte `utf8mb4` index key limit.
+
+---
+
 ## [1.3.1] — 2026-04-20
 
 ### Added

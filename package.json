@@ -1,6 +1,6 @@
 {
   "name": "fttddwa",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Federation of Tamil Nadu Tent Dealers & Decorators Welfare Association - Member Management System",
   "private": true,
   "scripts": {
@@ -33,6 +33,7 @@
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "^5.22.0",
+    "@vercel/blob": "^2.3.3",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

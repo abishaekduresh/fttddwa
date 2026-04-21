@@ -13,13 +13,20 @@ export interface UpdateSettingsInput {
   countryName?: string;
   birthdayVariables?: any;
   anniversaryVariables?: any;
+  enableExternalCron?: boolean;
+  externalCronSecret?: string | null;
 }
 
 export async function getWhatsappSettings() {
   let settings = await prisma.whatsappSettings.findFirst({ where: { id: 1 } });
   if (!settings) {
     settings = await prisma.whatsappSettings.create({
-      data: { id: 1, cronTime: "09:00", retryAttempts: 3 },
+      data: { 
+        id: 1, 
+        cronTime: "09:00", 
+        retryAttempts: 3,
+        enableExternalCron: true
+      },
     });
   }
   return settings;

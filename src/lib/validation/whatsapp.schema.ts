@@ -35,6 +35,8 @@ export const updateSettingsSchema = z.object({
   anniversaryVariables: z.record(z.string(), z.string()).nullable().optional(),
   countryCode: z.string().max(10).optional(),
   countryName: z.string().max(100).optional(),
+  enableExternalCron: z.boolean().optional(),
+  externalCronSecret: z.string().max(100).optional().nullable(),
 });
 
 export const manualSendSchema = z.object({

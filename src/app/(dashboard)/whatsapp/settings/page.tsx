@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, Loader2, Save, RefreshCw } from "lucide-react";
+import { Settings, Loader2, Save, RefreshCw, Eye, EyeOff, Link, ExternalLink } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -22,6 +22,9 @@ interface WaSettings {
   birthdayVariables: Record<string, string> | null;
   anniversaryTemplateId: number | null;
   anniversaryVariables: Record<string, string> | null;
+  enableExternalCron: boolean;
+  externalCronSecret: string | null;
+  cronSecret?: string;
 }
 
 const MEMBER_FIELDS = [
@@ -62,6 +65,7 @@ export default function WhatsAppSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [triggeringCron, setTriggeringCron] = useState(false);
+  const [showSecret, setShowSecret] = useState(false);
 
   useEffect(() => {
     const fetchAll = async () => {
@@ -224,6 +228,104 @@ export default function WhatsAppSettingsPage() {
               min={0} max={5}
               disabled={!canManage}
             />
+          </div>
+        </div>
+
+        {/* External Trigger */}
+        <div className="card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-slate-900 flex items-center gap-2">
+              <ExternalLink size={18} className="text-blue-600" />
+              External Trigger
+            </h2>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">Status:</span>
+              <button
+                type="button"
+                onClick={() => setSettings(s => s && ({ ...s, enableExternalCron: !s.enableExternalCron }))}
+                disabled={!canManage}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${settings.enableExternalCron ? "bg-green-600" : "bg-slate-200"}`}
+              >
+                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${settings.enableExternalCron ? "translate-x-4" : "translate-x-0"}`} />
+              </button>
+            </div>
+          </div>
+          
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Allow triggering the daily WhatsApp delivery from external services (like cron-job.org).
+          </p>
+          
+          <div className="space-y-4 pt-2">
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">
+                Authorized Secret Key
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <input
+                    type={showSecret ? "text" : "password"}
+                    className="form-input text-xs font-mono pr-10 bg-slate-50 cursor-default"
+                    placeholder="Auto-generated secret"
+                    value={settings.externalCronSecret || ""}
+                    readOnly
+                    disabled={!canManage}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecret(!showSecret)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showSecret ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  title="Generate random secret"
+                  onClick={() => {
+                    const randomSecret = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                    setSettings(s => s && ({ ...s, externalCronSecret: randomSecret }));
+                    toast.success("New secret generated (Save to apply)");
+                  }}
+                  disabled={!canManage}
+                  className="btn btn-outline py-1 px-3"
+                >
+                  <RefreshCw size={14} />
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">Click the refresh icon to generate a new secure key. Remember to save your changes.</p>
+            </div>
+
+            <div className={`transition-opacity duration-300 ${settings.enableExternalCron ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 block">Trigger URL (GET/POST)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  className="form-input text-xs font-mono bg-slate-50 flex-1 truncate"
+                  value={settings?.cronSecret || settings?.externalCronSecret ? `${typeof window !== "undefined" ? window.location.origin : ""}/api/whatsapp/cron/trigger?secret=${settings.externalCronSecret || settings.cronSecret}` : "Loading URL..."}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const secret = settings.externalCronSecret || settings.cronSecret;
+                    if (!secret) return;
+                    const url = `${window.location.origin}/api/whatsapp/cron/trigger?secret=${secret}`;
+                    navigator.clipboard.writeText(url);
+                    toast.success("URL copied to clipboard");
+                  }}
+                  className="btn btn-outline py-1 px-3 text-xs"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            {!settings.enableExternalCron && (
+              <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-[10px] text-red-700 leading-normal flex items-center gap-2">
+                <span className="shrink-0 w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse" />
+                External access is currently disabled. The trigger URL above will return a 403 Forbidden error.
+              </div>
+            )}
           </div>
         </div>
 
