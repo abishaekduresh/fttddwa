@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       secure: IS_PROD,
       sameSite: "strict",
       maxAge: 604800,
-      path: "/",
+      path: "/api/auth",
     });
 
     return response;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -8,20 +8,43 @@ import { Topbar } from "@/components/layout/topbar";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
 
+const REFRESH_INTERVAL_MS = 12 * 60 * 1000;   // 12 minutes
+const IDLE_THRESHOLD_MS   = 10 * 60 * 1000;   // 10 minutes — skip refresh if idle longer
+const REFRESH_DEBOUNCE_KEY = "auth_last_refresh"; // localStorage key for multi-tab coordination
+const REFRESH_DEBOUNCE_MS  = 30 * 1000;          // 30 s — only one tab refreshes at a time
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { setUser } = useAuthStore();
-  const [sidebarOpen, setSidebarOpen] = useState(false); // start closed (mobile-first)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const lastActivityRef = useRef(Date.now());
 
   useEffect(() => {
-    // Auto-open sidebar on large screens
     if (window.innerWidth >= 1024) setSidebarOpen(true);
+  }, []);
+
+  // Track user activity to skip refresh for idle tabs
+  useEffect(() => {
+    const mark = () => { lastActivityRef.current = Date.now(); };
+    window.addEventListener("click", mark);
+    window.addEventListener("keydown", mark);
+    window.addEventListener("scroll", mark, { passive: true });
+    return () => {
+      window.removeEventListener("click", mark);
+      window.removeEventListener("keydown", mark);
+      window.removeEventListener("scroll", mark);
+    };
   }, []);
 
   useEffect(() => {
     const silentRefresh = async (): Promise<boolean> => {
+      // Multi-tab debounce: if another tab refreshed recently, skip
+      const lastRefresh = parseInt(localStorage.getItem(REFRESH_DEBOUNCE_KEY) || "0", 10);
+      if (Date.now() - lastRefresh < REFRESH_DEBOUNCE_MS) return true;
+
       const res = await fetch("/api/auth/refresh", { method: "POST" });
+      if (res.ok) localStorage.setItem(REFRESH_DEBOUNCE_KEY, Date.now().toString());
       return res.ok;
     };
 
@@ -55,13 +78,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     initAuth();
 
-    // Proactively refresh the access token every 12 minutes (before 15-min expiry)
+    // Proactively refresh access token before 15-min expiry,
+    // but only if user was active in the last IDLE_THRESHOLD_MS.
     const refreshInterval = setInterval(async () => {
+      const idle = Date.now() - lastActivityRef.current > IDLE_THRESHOLD_MS;
+      if (idle) return; // skip refresh for inactive tabs
+
       const ok = await silentRefresh();
       if (!ok) {
         router.push("/login");
       }
-    }, 12 * 60 * 1000);
+    }, REFRESH_INTERVAL_MS);
 
     return () => clearInterval(refreshInterval);
   }, []);
@@ -76,7 +103,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Mobile backdrop overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"

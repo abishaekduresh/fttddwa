@@ -30,9 +30,10 @@ export async function POST(req: NextRequest) {
     httpOnly: true, secure: IS_PROD, sameSite: "strict",
     path: "/", expires: expired, maxAge: 0,
   });
+  // Must match the path used when setting — /api/auth
   response.cookies.set("refresh_token", "", {
     httpOnly: true, secure: IS_PROD, sameSite: "strict",
-    path: "/", expires: expired, maxAge: 0,
+    path: "/api/auth", expires: expired, maxAge: 0,
   });
 
   return response;

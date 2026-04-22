@@ -2,9 +2,11 @@ import { SignJWT, jwtVerify, type JWTPayload } from "jose";
 
 export interface AccessTokenPayload extends JWTPayload {
   userId: number;
+  name: string;
   email: string;
   role: string;
   roleId: number;
+  permissions: string[];
 }
 
 export interface RefreshTokenPayload extends JWTPayload {

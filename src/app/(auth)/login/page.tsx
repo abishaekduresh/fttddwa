@@ -44,6 +44,15 @@ export default function LoginPage() {
     async function checkSession() {
       try {
         let meRes = await fetch("/api/auth/me");
+
+        // access_token expired — try silent refresh
+        if (meRes.status === 401) {
+          const refreshRes = await fetch("/api/auth/refresh", { method: "POST" });
+          if (refreshRes.ok) {
+            meRes = await fetch("/api/auth/me");
+          }
+        }
+
         if (meRes.ok) {
           const meJson = await meRes.json();
           setUser(meJson.data);
@@ -51,18 +60,8 @@ export default function LoginPage() {
           return;
         }
 
-        const refreshRes = await fetch("/api/auth/refresh", { method: "POST" });
-        if (refreshRes.ok) {
-          meRes = await fetch("/api/auth/me");
-          if (meRes.ok) {
-            const meJson = await meRes.json();
-            setUser(meJson.data);
-            router.push("/dashboard");
-            return;
-          }
-        }
-
-        await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+        // No valid session — clear any stale cookies and show the form
+        await fetch("/api/auth/logout", { method: "POST" });
       } catch (err) {
         console.error("[Login] Session check failed:", err);
       } finally {
@@ -100,7 +99,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         const errorMsg = json.message || "Invalid credentials. Please check your email and password.";
-        
+
         if (res.status === 429) {
           const retryAfter = parseInt(res.headers.get("Retry-After") || "900", 10);
           setCountdown(retryAfter);
@@ -114,15 +113,15 @@ export default function LoginPage() {
         return;
       }
 
+      // Fetch user profile — 0 DB queries, reads from JWT headers
       const meRes = await fetch("/api/auth/me");
       if (!meRes.ok) {
-        const meJson = await meRes.json().catch(() => ({}));
-        toast.error(meJson.message || "Session could not be established.");
+        toast.error("Session could not be established.");
         return;
       }
       const meJson = await meRes.json();
       setUser(meJson.data);
-      toast.success(`Welcome back, ${meJson.data.name}!`);
+      toast.success(`Welcome back, ${json.name || meJson.data.name}!`);
       router.push("/dashboard");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Connection failed";

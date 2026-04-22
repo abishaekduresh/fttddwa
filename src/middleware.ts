@@ -15,6 +15,7 @@ const PUBLIC_PATHS = [
   "/api/files",
   "/api/whatsapp/webhook",
   "/api/members/register",
+  "/api/members/register/upload",
   "/api/whatsapp/cron/trigger",
 ];
 
@@ -28,7 +29,7 @@ const AUTH_API_PATHS = ["/api/auth/login", "/api/auth/refresh"];
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Rate limit auth endpoints
+  // Rate limit auth endpoints by IP (stricter)
   if (AUTH_API_PATHS.some((p) => pathname.startsWith(p))) {
     const ip = getClientIp(req);
     const limit = rateLimit(
@@ -48,23 +49,6 @@ export async function middleware(req: NextRequest) {
             "X-RateLimit-Remaining": "0",
           },
         }
-      );
-    }
-  }
-
-  // General rate limiting for all API routes
-  if (pathname.startsWith("/api/")) {
-    const ip = getClientIp(req);
-    const limit = rateLimit(
-      `api:${ip}`,
-      parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "100", 10),
-      parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000", 10)
-    );
-
-    if (!limit.success) {
-      return NextResponse.json(
-        { success: false, message: "Rate limit exceeded" },
-        { status: 429 }
       );
     }
   }
@@ -95,7 +79,6 @@ export async function middleware(req: NextRequest) {
   if (!pathname.startsWith("/api/")) {
     const token = req.cookies.get("access_token")?.value;
     if (!token) {
-      // No token at all → send to login
       return NextResponse.redirect(new URL("/login", req.url));
     }
 
@@ -129,12 +112,29 @@ export async function middleware(req: NextRequest) {
       );
     }
 
+    // Rate limit authenticated API requests by userId (not IP) — prevents
+    // shared NAT/proxy from grouping all users under one limit.
+    const apiLimit = rateLimit(
+      `api:user:${payload.userId}`,
+      parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || "200", 10),
+      parseInt(process.env.RATE_LIMIT_WINDOW_MS || "900000", 10)
+    );
+
+    if (!apiLimit.success) {
+      return NextResponse.json(
+        { success: false, message: "Rate limit exceeded" },
+        { status: 429 }
+      );
+    }
+
     // Inject user info into headers for API handlers
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set("x-user-id", payload.userId.toString());
+    requestHeaders.set("x-user-name", payload.name);
     requestHeaders.set("x-user-email", payload.email);
     requestHeaders.set("x-user-role", payload.role);
     requestHeaders.set("x-user-role-id", payload.roleId.toString());
+    requestHeaders.set("x-user-permissions", JSON.stringify(payload.permissions ?? []));
 
     return NextResponse.next({ request: { headers: requestHeaders } });
   }

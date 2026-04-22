@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     // Never expose tokens in the response body — HttpOnly cookies only
     const response = NextResponse.json(
-      { success: true, message: "Login successful" },
+      { success: true, message: "Login successful", name: result.user!.name },
       { status: 200 }
     );
 
@@ -45,12 +45,14 @@ export async function POST(req: NextRequest) {
       path: "/",
     });
 
+    // Restrict refresh_token to /api/auth/ path — reduces attack surface.
+    // It will only be sent to /api/auth/refresh and /api/auth/logout.
     response.cookies.set("refresh_token", result.refreshToken!, {
       httpOnly: true,
       secure: IS_PROD,
       sameSite: "strict",
       maxAge: 604800,   // 7 days
-      path: "/",
+      path: "/api/auth",
     });
 
     return response;

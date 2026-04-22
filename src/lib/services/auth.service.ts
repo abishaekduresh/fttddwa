@@ -6,6 +6,17 @@ import { createAuditLog } from "./audit.service";
 const MAX_FAILED_ATTEMPTS = 10;
 const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
+// Include shape reused across queries
+const userWithRoleInclude = {
+  role: {
+    include: {
+      permissions: {
+        include: { permission: { select: { name: true } } },
+      },
+    },
+  },
+} as const;
+
 export interface LoginResult {
   success: boolean;
   accessToken?: string;
@@ -26,8 +37,10 @@ export async function loginUser(
   ipAddress?: string,
   userAgent?: string
 ): Promise<LoginResult> {
+  // Single query: user + role + permissions
   const user = await prisma.user.findUnique({
     where: { email: email.toLowerCase() },
+    include: userWithRoleInclude,
   });
 
   if (!user) {
@@ -44,8 +57,6 @@ export async function loginUser(
   if (!user.isActive) {
     return { success: false, error: "Account is deactivated" };
   }
-
-  const role = await prisma.role.findUnique({ where: { id: user.roleId! } });
 
   // Check account lockout
   if (user.lockedUntil && user.lockedUntil > new Date()) {
@@ -88,28 +99,25 @@ export async function loginUser(
     data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
   });
 
+  const permissions = user.role?.permissions?.map((rp) => rp.permission.name) ?? [];
+
   const accessToken = await signAccessToken({
     userId: user.id,
+    name: user.name,
     email: user.email,
-    role: role?.name ?? "",
+    role: user.role?.name ?? "",
     roleId: user.roleId!,
+    permissions,
   });
 
-  const refreshToken = await signRefreshToken({ userId: user.id, sessionId: 0 });
-
-  // Store refresh token hash
+  // Create session first with a temp token, then re-sign with real session ID
+  const tempToken = await signRefreshToken({ userId: user.id, sessionId: 0 });
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
   const session = await prisma.session.create({
-    data: {
-      userId: user.id,
-      refreshToken,
-      ipAddress,
-      userAgent,
-      expiresAt,
-    },
+    data: { userId: user.id, refreshToken: tempToken, ipAddress, userAgent, expiresAt },
   });
 
-  // Re-sign with real session ID
   const finalRefreshToken = await signRefreshToken({ userId: user.id, sessionId: session.id });
   await prisma.session.update({
     where: { id: session.id },
@@ -133,7 +141,7 @@ export async function loginUser(
       id: user.id,
       name: user.name,
       email: user.email,
-      role: role?.name ?? "",
+      role: user.role?.name ?? "",
       roleId: user.roleId!,
     },
   };
@@ -146,24 +154,30 @@ export async function refreshTokens(
   const payload = await verifyRefreshToken(refreshToken);
   if (!payload) return null;
 
-  const session = await prisma.session.findUnique({ where: { refreshToken } });
+  // Single query: session + user + role + permissions
+  const session = await prisma.session.findUnique({
+    where: { refreshToken },
+    include: { user: { include: userWithRoleInclude } },
+  });
+
   if (!session || session.revokedAt || session.expiresAt < new Date()) return null;
 
-  const sessionUser = await prisma.user.findUnique({ where: { id: session.userId } });
-  if (!sessionUser || !sessionUser.isActive) return null;
+  const { user } = session;
+  if (!user || !user.isActive) return null;
 
-  const sessionRole = await prisma.role.findUnique({ where: { id: sessionUser.roleId! } });
+  const permissions = user.role?.permissions?.map((rp) => rp.permission.name) ?? [];
 
-  // Rotate refresh token
   const newAccessToken = await signAccessToken({
-    userId: sessionUser.id,
-    email: sessionUser.email,
-    role: sessionRole?.name ?? "",
-    roleId: sessionUser.roleId!,
+    userId: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role?.name ?? "",
+    roleId: user.roleId!,
+    permissions,
   });
 
   const newRefreshToken = await signRefreshToken({
-    userId: sessionUser.id,
+    userId: user.id,
     sessionId: session.id,
   });
 
@@ -183,7 +197,8 @@ export async function logoutUser(refreshToken: string): Promise<void> {
 }
 
 export async function getUserById(userId: number) {
-  const user = await prisma.user.findUnique({
+  // Single query: user + role + permissions (used for /api/auth/me fallback only)
+  return prisma.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
@@ -193,24 +208,18 @@ export async function getUserById(userId: number) {
       isActive: true,
       lastLoginAt: true,
       createdAt: true,
-    },
-  });
-
-  if (!user) return null;
-
-  const role = await prisma.role.findUnique({
-    where: { id: user.roleId! },
-    select: {
-      id: true,
-      name: true,
-      displayName: true,
-      permissions: {
-        select: { permission: { select: { name: true } } },
+      role: {
+        select: {
+          id: true,
+          name: true,
+          displayName: true,
+          permissions: {
+            select: { permission: { select: { name: true } } },
+          },
+        },
       },
     },
   });
-
-  return { ...user, role };
 }
 
 export async function changePassword(
