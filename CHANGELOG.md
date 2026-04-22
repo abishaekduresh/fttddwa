@@ -6,6 +6,29 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [1.5.0] — 2026-04-22
+
+### Added
+- **Permissions in JWT** — `permissions[]` and `name` are now embedded in the access token payload. `GET /api/auth/me` requires **zero database queries** — all user data is read from the JWT headers injected by middleware.
+- **Idle-Aware Token Refresh** — Dashboard layout tracks user activity. Proactive 12-minute refresh is skipped when the tab has been idle for more than 10 minutes, eliminating unnecessary DB hits for inactive sessions.
+- **Multi-Tab Refresh Debounce** — A `localStorage` timestamp ensures only one browser tab issues a `/api/auth/refresh` call per 30-second window, preventing N-tab multiplication of DB queries.
+- **User-ID Rate Limiting** — Authenticated API endpoints are now rate-limited per `userId` (200 req / 15 min) instead of per IP, preventing shared NAT/proxy environments from grouping all users under a single bucket.
+
+### Changed
+- **`refresh_token` Cookie Path** — Restricted from `path: "/"` to `path: "/api/auth"`. The cookie is no longer sent with every browser request — it is only transmitted to `/api/auth/refresh` and `/api/auth/logout`, reducing the cookie's attack surface.
+- **Auth Service — Batched Prisma Queries** — `loginUser`, `refreshTokens`, and `getUserById` now use Prisma `include` to fetch user + role + permissions in a single query instead of 2–3 separate round-trips.
+  - Login: 5 DB queries → 4
+  - Refresh: 4 DB queries → 2
+  - `/api/auth/me`: 2 DB queries → **0**
+- **Login Page Session Restore** — `checkSession` now fully awaits the logout call before `setCheckingSession(false)`, ensuring stale cookies are cleared before the login form is displayed.
+- **Login Response** — `/api/auth/login` now returns `name` in the response body so the welcome toast can be shown without an additional `/api/auth/me` call.
+
+### Fixed
+- **Ghost `refresh_token` on Login Page** — Stale cookies from expired sessions are now reliably cleared before the login form becomes visible.
+- **`logout` Cookie Mismatch** — `refresh_token` cookie in the logout route now uses `path: "/api/auth"` to match the path used at creation; previously the delete was silently ignored by the browser when paths differed.
+
+---
+
 ## [1.4.0] — 2026-04-21
 
 ### Added
@@ -200,6 +223,8 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.5.0 | 2026-04-22 | Auth hardening, zero-DB /me, batched queries, idle refresh, multi-tab debounce |
+| 1.4.0 | 2026-04-21 | Vercel deployment, Blob storage, public registration, APP_ENV/TIMEZONE vars |
 | 1.3.1 | 2026-04-20 | PM2 Production Support & Deployment Optimization |
 | 1.3.0 | 2026-04-19 | Integrated phpMyAdmin for database management |
 | 1.2.0 | 2026-04-19 | WhatsApp Module, Credit Tracking, IST Automation, and Deployment Refinement |
@@ -208,7 +233,9 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/your-org/fttddwa/compare/v1.4.0...v1.5.0
+[1.4.0]: https://github.com/your-org/fttddwa/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/your-org/fttddwa/releases/tag/v1.3.1
 [1.3.0]: https://github.com/your-org/fttddwa/releases/tag/v1.3.0
 [1.2.0]: https://github.com/your-org/fttddwa/releases/tag/v1.2.0

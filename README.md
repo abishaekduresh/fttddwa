@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 1.4.0** | Deployable on Vercel + SiteGround MySQL
+> **Version 1.5.0** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
 
 ---
 
@@ -23,9 +23,12 @@
 
 ### Authentication & Security
 - JWT access tokens (15 min) + refresh tokens (7 days) in HttpOnly cookies
+- `refresh_token` cookie scoped to `/api/auth` path — not sent on regular page requests
+- Permissions embedded in JWT payload — `/api/auth/me` requires **zero DB queries**
 - Role-Based Access Control (RBAC) — Super Admin, Admin, Data Entry Operator, Viewer
-- Account lockout after 5 failed login attempts (15-min cooldown)
-- Rate limiting on all API routes and strict limits on auth endpoints
+- Account lockout after 10 failed login attempts (5-min cooldown)
+- Rate limiting: auth endpoints by IP (strict), authenticated APIs by user ID
+- Idle-aware proactive token refresh; multi-tab debounce prevents duplicate DB hits
 - Input sanitization (XSS protection via `sanitize-html`)
 - Security headers via Next.js config (CSP, X-Frame-Options, HSTS-ready)
 
@@ -142,7 +145,8 @@ The recommended production setup is **Vercel** (hosting) + **SiteGround** (MySQL
 | `BLOB_READ_WRITE_TOKEN` | from Vercel Blob |
 | `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` |
 | `MEMBERSHIP_ID_PREFIX` | `FTTD` |
-| `NODE_ENV` | `production` |
+| `APP_ENV` | `production` |
+| `TIMEZONE` | `Asia/Kolkata` |
 
 4. Deploy — Vercel runs `npm run build` (`prisma generate && next build`) automatically.
 
@@ -362,7 +366,7 @@ Before going to production:
 - [ ] Replace all secrets in `.env` with strong random values (`openssl rand -base64 32`)
 - [ ] Change the default admin password
 - [ ] Enable HTTPS (configure SSL in `docker/nginx/ssl/`)
-- [ ] Set `NODE_ENV=production`
+- [ ] Set `APP_ENV=production` and `TIMEZONE=Asia/Kolkata`
 - [ ] Configure a firewall — only expose ports 80 and 443
 - [ ] Enable automated MySQL backups
 - [ ] Review and rotate JWT secrets periodically
