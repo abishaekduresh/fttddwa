@@ -12,7 +12,7 @@ function fmtDate(d: string | Date | null): string {
   } catch { return ""; }
 }
 
-async function fetchImageAsJpeg(url: string): Promise<Buffer | null> {
+async function processImageForPdf(url: string): Promise<Buffer | null> {
   if (!url) return null;
   try {
     let finalUrl = url;
@@ -22,9 +22,13 @@ async function fetchImageAsJpeg(url: string): Promise<Buffer | null> {
     }
     const res = await fetch(finalUrl, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
-    return await sharp(Buffer.from(await res.arrayBuffer())).jpeg({ quality: 85 }).toBuffer();
+    
+    // Use PNG to preserve transparency (essential for logos and signatures)
+    return await sharp(Buffer.from(await res.arrayBuffer()))
+      .png()
+      .toBuffer();
   } catch (err) { 
-    console.error(`PDF Gen: Failed to fetch image ${url}`, err);
+    console.error(`PDF Gen: Failed to process image ${url}`, err);
     return null; 
   }
 }
@@ -77,10 +81,10 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
 
   // 3. Fetch images
   const [logo1Buf, logo2Buf, photoBuf, sigBuf] = await Promise.all([
-    setting?.logo1Url ? fetchImageAsJpeg(setting.logo1Url) : Promise.resolve(null),
-    setting?.logo2Url ? fetchImageAsJpeg(setting.logo2Url) : Promise.resolve(null),
-    (s.showPhoto && memberRow.photoUrl) ? fetchImageAsJpeg(memberRow.photoUrl) : Promise.resolve(null),
-    setting?.sigChairmanUrl ? fetchImageAsJpeg(setting.sigChairmanUrl) : Promise.resolve(null),
+    setting?.logo1Url ? processImageForPdf(setting.logo1Url) : Promise.resolve(null),
+    setting?.logo2Url ? processImageForPdf(setting.logo2Url) : Promise.resolve(null),
+    (s.showPhoto && memberRow.photoUrl) ? processImageForPdf(memberRow.photoUrl) : Promise.resolve(null),
+    setting?.sigChairmanUrl ? processImageForPdf(setting.sigChairmanUrl) : Promise.resolve(null),
   ]);
 
   // 4. Build PDF
