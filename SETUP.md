@@ -176,6 +176,17 @@ pm2 logs
 **Via Server Panel:**
 Select `ecosystem.config.js` as the project's startup script in the **PM2 Project** settings.
 
+> [!IMPORTANT]
+> **aaPanel / VPS Build Troubleshooting**
+> If you encounter `Unsupported engine` warnings for Prisma or `tsc: command not found` errors during deployment:
+> 1. **Upgrade Node.js**: Ensure you are using **Node.js v20.x or v22.x**. In aaPanel, use the **Node.js Version Manager** to install and select the correct version for your project.
+> 2. **Clean Install**: If you previously ran `npm install` with a different Node version, delete `node_modules` and run it again:
+>    ```bash
+>    rm -rf node_modules package-lock.json
+>    npm install
+>    ```
+> 3. **Binary Paths**: All build scripts in `package.json` now use `npx` to ensure they can find local binaries (like `tsc` and `prisma`) even if they aren't in your global `PATH`.
+
 ---
 
 ## Production Deployment (VPS / Portainer)

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, UserPlus, CheckCircle2, ArrowLeft, ShieldOff } from "lucide-react";
+import { Loader2, UserPlus, CheckCircle2, ArrowLeft, ShieldOff, Camera, X } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Link from "next/link";
 import { createMemberSchema, type CreateMemberInput } from "@/lib/validation/member.schema";
@@ -15,6 +15,8 @@ export default function MemberRegisterPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const [settings, setSettings] = useState<{ logo1Url?: string; name?: string; tagline?: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/settings/app")
@@ -47,6 +49,43 @@ export default function MemberRegisterPage() {
   const [isOtherDistrict, setIsOtherDistrict] = useState(false);
   const [districtSelect, setDistrictSelect] = useState("");
   const taluks = (!isOtherDistrict && selectedDistrict) ? (TAMIL_NADU_DISTRICTS[selectedDistrict] ?? []) : [];
+
+  const onPhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (1MB)
+    if (file.size > 1 * 1024 * 1024) {
+      toast.error("Photo is too large (max 1MB)");
+      return;
+    }
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/members/register/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Upload failed");
+
+      setValue("photoUrl", json.data.url);
+      setPreviewUrl(json.data.url);
+      toast.success("Photo uploaded successfully");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to upload photo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = () => {
+    setValue("photoUrl", "");
+    setPreviewUrl(null);
+  };
 
   const onSubmit = async (data: CreateMemberInput) => {
     setLoading(true);
@@ -176,33 +215,85 @@ export default function MemberRegisterPage() {
               )}
 
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-                {/* ── Personal Information ── */}
+                {/* ── Photo & Personal Information ── */}
                 <fieldset>
                   <legend className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                     <span className="flex-1 border-t border-slate-100" />
                     Personal Information
                     <span className="flex-1 border-t border-slate-100" />
                   </legend>
+
+                  <div className="flex flex-col sm:flex-row gap-6 mb-6">
+                    {/* Photo Upload */}
+                    <div className="flex-shrink-0">
+                      <label className="form-label mb-2 block">Member Photo</label>
+                      <div className="relative group w-32 h-40">
+                        {previewUrl ? (
+                          <>
+                            <img
+                              src={previewUrl}
+                              alt="Preview"
+                              className="w-full h-full object-cover rounded-xl border-2 border-slate-100 shadow-sm transition-opacity group-hover:opacity-75"
+                            />
+                            <button
+                              type="button"
+                              onClick={removePhoto}
+                              className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X size={14} />
+                            </button>
+                            {uploading && (
+                                <div className="absolute inset-0 bg-white/60 flex items-center justify-center rounded-xl">
+                                    <Loader2 size={24} className="animate-spin text-primary" />
+                                </div>
+                            )}
+                          </>
+                        ) : (
+                          <label className={`
+                            flex flex-col items-center justify-center w-full h-full 
+                            border-2 border-dashed rounded-xl cursor-pointer transition-all
+                            ${uploading ? 'bg-slate-50 border-slate-200' : 'bg-slate-50 border-slate-300 hover:border-primary-500 hover:bg-primary-50'}
+                          `}>
+                            {uploading ? (
+                              <Loader2 size={24} className="animate-spin text-slate-400" />
+                            ) : (
+                              <>
+                                <Camera size={24} className="text-slate-400 mb-1" />
+                                <span className="text-[10px] font-medium text-slate-500 uppercase">Upload Photo</span>
+                              </>
+                            )}
+                            <input type="file" className="hidden" accept="image/*" onChange={onPhotoChange} disabled={uploading} />
+                          </label>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-2 text-center">Passport size (max 1MB)</p>
+                      <input type="hidden" {...register("photoUrl")} />
+                    </div>
+
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-1 gap-4">
+                      <div>
+                        <label className="form-label">Full Name <span className="text-red-500">*</span></label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Ravi Kumar"
+                          className={`form-input ${errors.name ? "form-input-error" : ""}`}
+                          {...register("name")}
+                        />
+                        {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
+                      </div>
+                      <div>
+                        <label className="form-label">Name in Tamil</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. ரவி குமார்"
+                          className="form-input"
+                          {...register("nameTamil")}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="form-label">Full Name <span className="text-red-500">*</span></label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Ravi Kumar"
-                        className={`form-input ${errors.name ? "form-input-error" : ""}`}
-                        {...register("name")}
-                      />
-                      {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
-                    </div>
-                    <div>
-                      <label className="form-label">Name in Tamil</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. ரவி குமார்"
-                        className="form-input"
-                        {...register("nameTamil")}
-                      />
-                    </div>
                     <div>
                       <label className="form-label">Phone Number <span className="text-red-500">*</span></label>
                       <input
@@ -276,7 +367,6 @@ export default function MemberRegisterPage() {
                       <div className="form-input bg-slate-50 text-slate-500 cursor-not-allowed select-none">
                         Member
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">Position is set to Member by default</p>
                     </div>
                     <div>
                       <label className="form-label">Industry / Trade</label>
