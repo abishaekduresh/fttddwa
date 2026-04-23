@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api/client-fetch";
 
 import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Save, Upload, Building2, Palette, Phone, Wand2, ExternalLink } from "lucide-react";
+import { Loader2, Save, Upload, Building2, Palette, Phone, Wand2, ExternalLink, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import toast from "react-hot-toast";
 import { associationSettingsSchema, type AssociationSettingsInput } from "@/lib/validation/association.schema";
@@ -142,6 +142,12 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
     } finally {
       setUploadingSigs(prev => ({ ...prev, [field]: false }));
     }
+  };
+
+  const handleRemoveSignature = (field: keyof AssociationSettingsInput) => {
+    setSigUrls(prev => ({ ...prev, [field]: "" }));
+    setValue(field as any, "", { shouldDirty: true });
+    toast.success("Signature removed. Don't forget to save changes.");
   };
 
   const onValidationError = (errs: FieldErrors<AssociationSettingsInput>) => {
@@ -416,10 +422,26 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
                 { field: "sigJointSecretaryUrl", label: "Joint Secretary Signature" },
                 { field: "sigTreasurerUrl", label: "Treasurer Signature" },
               ].map((s) => (
-                <div key={s.field}>
+                <div key={s.field} className="relative group">
                   <label className="form-label">{s.label}</label>
+                  
+                  {/* Remove Button */}
+                  {(sigUrls as any)[s.field] && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveSignature(s.field as any);
+                      }}
+                      className="absolute top-8 right-1 z-10 p-1.5 bg-red-50 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-sm opacity-0 group-hover:opacity-100"
+                      title="Remove Signature"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
+
                   <div 
-                    className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer group"
+                    className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer group/box"
                     onClick={() => {
                       const input = document.createElement("input");
                       input.type = "file";
@@ -434,8 +456,8 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
                     {(sigUrls as any)[s.field] ? (
                       <div className="relative w-full h-20">
                         <img src={(sigUrls as any)[s.field]} alt={s.label} className="w-full h-full object-contain mix-blend-multiply" />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
-                          <Upload size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <div className="absolute inset-0 bg-black/0 group-hover/box:bg-black/5 transition-colors rounded-lg flex items-center justify-center">
+                          <Upload size={18} className="text-slate-600 opacity-0 group-hover/box:opacity-100 transition-opacity" />
                         </div>
                       </div>
                     ) : (
