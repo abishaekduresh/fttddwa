@@ -6,6 +6,26 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [1.7.0] — 2026-04-24
+
+### Added
+- **Association Signatures Management** — New interface in Association Settings to manage digital signatures for Chairman, President, Vice President, Secretary, Joint Secretary, and Treasurer.
+- **Redesigned Portrait ID Card** — Replaced the landscape ID card with a professional portrait design (standard CR80 format).
+    - Premium dark header with dual-logo support.
+    - High-contrast name bar and position details.
+    - Specialized styling for business name (Pink) and location details (Blue).
+    - Signature placeholders in a professional green footer.
+- **Unified PDF Generation** — Created a centralized `generateIdCardPdf` service to ensure identical design across all access points.
+- **Auto-Validity Tracking** — ID cards now automatically compute a 2-year validity period from the member's join date.
+
+### Changed
+- **Unified Path Structure** — Standardized ID card PDF URLs with clean suffixes:
+    - `/members/id-card/:token.pdf` (Public secure access)
+    - `/api/members/card/:uuid.pdf` (Admin authenticated access)
+- **Database Schema (v1.7.0)** — Added signature URL columns to the `association_settings` model.
+
+---
+
 ## [1.6.1] — 2026-04-24
 
 ### Added

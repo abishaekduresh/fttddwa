@@ -41,8 +41,12 @@ const nextConfig: NextConfig = {
         destination: "/api/files/:path*",
       },
       {
-        source: "/members/id-card/:token.pdf",
-        destination: "/members/id-card/pdf/:token",
+        source: "/members/id-card/:uuid.pdf",
+        destination: "/members/id-card/pdf/:uuid",
+      },
+      {
+        source: "/api/members/card/:uuid.pdf",
+        destination: "/api/members/card/:uuid/pdf",
       },
     ];
   },

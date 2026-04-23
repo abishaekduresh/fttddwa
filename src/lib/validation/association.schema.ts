@@ -16,6 +16,12 @@ export const associationSettingsSchema = z.object({
   stateTamil: z.string().max(100).optional().or(z.literal("")),
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().max(20).optional().or(z.literal("")),
+  sigChairmanUrl: z.string().optional().or(z.literal("")),
+  sigPresidentUrl: z.string().optional().or(z.literal("")),
+  sigVicePresidentUrl: z.string().optional().or(z.literal("")),
+  sigSecretaryUrl: z.string().optional().or(z.literal("")),
+  sigJointSecretaryUrl: z.string().optional().or(z.literal("")),
+  sigTreasurerUrl: z.string().optional().or(z.literal("")),
 });
 
 export type AssociationSettingsInput = z.infer<typeof associationSettingsSchema>;

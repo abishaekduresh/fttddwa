@@ -321,10 +321,12 @@ npm run test:watch
 
 ---
 
-## Association Branding Requirements
+## Association Branding & Signatures
 
 > [!TIP]
-> **Logo Dimensions:** Both Primary (Square/Icon) and Secondary (Banner/Seal) logos should be uploaded at **1080x1080px** for optimal quality across the dashboard and printed reports. Supported formats: PNG, WebP (Max 1MB).
+> **Logo & Signatures:**
+> - **Logos:** Both Primary (Square/Icon) and Secondary (Banner/Seal) logos should be uploaded at **1080x1080px** for optimal quality across the dashboard and printed reports. Supported formats: PNG, WebP (Max 1MB).
+> - **Signatures:** For best results on ID cards, use signature images with a **transparent background (PNG)**. Ensure signatures are horizontal and well-lit. Max size: 500KB.
 
 ---
 

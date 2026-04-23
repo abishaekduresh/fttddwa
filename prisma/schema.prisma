@@ -178,6 +178,12 @@ model AssociationSetting {
   enableMemberRegistration Boolean  @default(true)
   enableIdCard             Boolean  @default(true)
   idCardSettings           Json?
+  sigChairmanUrl           String?  @db.VarChar(500)
+  sigPresidentUrl          String?  @db.VarChar(500)
+  sigVicePresidentUrl      String?  @db.VarChar(500)
+  sigSecretaryUrl          String?  @db.VarChar(500)
+  sigJointSecretaryUrl     String?  @db.VarChar(500)
+  sigTreasurerUrl          String?  @db.VarChar(500)
   updatedAt                DateTime @updatedAt
 
   @@map("association_settings")

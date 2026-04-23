@@ -15,13 +15,22 @@ interface AssociationSettingsFormProps {
 }
 
 export function AssociationSettingsForm({ initialData }: AssociationSettingsFormProps) {
-  const [tab, setTab] = useState<"basic" | "branding" | "contact">("basic");
+  const [tab, setTab] = useState<"basic" | "branding" | "contact" | "signatures">("basic");
   const [loading, setLoading] = useState(false);
   const [uploadingLogo1, setUploadingLogo1] = useState(false);
   const [uploadingLogo2, setUploadingLogo2] = useState(false);
   const [translatingField, setTranslatingField] = useState<string | null>(null);
   const [logo1Url, setLogo1Url] = useState(initialData?.logo1Url || "");
   const [logo2Url, setLogo2Url] = useState(initialData?.logo2Url || "");
+  const [sigUrls, setSigUrls] = useState({
+    sigChairmanUrl: initialData?.sigChairmanUrl || "",
+    sigPresidentUrl: initialData?.sigPresidentUrl || "",
+    sigVicePresidentUrl: initialData?.sigVicePresidentUrl || "",
+    sigSecretaryUrl: initialData?.sigSecretaryUrl || "",
+    sigJointSecretaryUrl: initialData?.sigJointSecretaryUrl || "",
+    sigTreasurerUrl: initialData?.sigTreasurerUrl || "",
+  });
+  const [uploadingSigs, setUploadingSigs] = useState<Record<string, boolean>>({});
   const fileInput1Ref = useRef<HTMLInputElement>(null);
   const fileInput2Ref = useRef<HTMLInputElement>(null);
 
@@ -67,6 +76,14 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
       reset(initialData);
       setLogo1Url(initialData.logo1Url || "");
       setLogo2Url(initialData.logo2Url || "");
+      setSigUrls({
+        sigChairmanUrl: initialData.sigChairmanUrl || "",
+        sigPresidentUrl: initialData.sigPresidentUrl || "",
+        sigVicePresidentUrl: initialData.sigVicePresidentUrl || "",
+        sigSecretaryUrl: initialData.sigSecretaryUrl || "",
+        sigJointSecretaryUrl: initialData.sigJointSecretaryUrl || "",
+        sigTreasurerUrl: initialData.sigTreasurerUrl || "",
+      });
     }
   }, [initialData, reset]);
 
@@ -74,7 +91,6 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
     const setUploading = index === 1 ? setUploadingLogo1 : setUploadingLogo2;
     const setUrl = index === 1 ? setLogo1Url : setLogo2Url;
 
-    // Validate size (1MB)
     if (file.size > 1024 * 1024) {
       toast.error("Logo must be less than 1MB");
       return;
@@ -98,6 +114,33 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
       toast.error("Upload failed");
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleSignatureUpload = async (file: File, field: keyof AssociationSettingsInput) => {
+    if (file.size > 512 * 1024) {
+      toast.error("Signature must be less than 500KB");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    setUploadingSigs(prev => ({ ...prev, [field]: true }));
+
+    try {
+      const res = await apiFetch("/api/upload?type=signatures", { method: "POST", body: formData });
+      const json = await res.json();
+      if (json.success) {
+        setSigUrls(prev => ({ ...prev, [field]: json.data.url }));
+        setValue(field as any, json.data.url, { shouldDirty: true });
+        toast.success("Signature uploaded");
+      } else {
+        toast.error(json.message || "Upload failed");
+      }
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUploadingSigs(prev => ({ ...prev, [field]: false }));
     }
   };
 
@@ -151,6 +194,7 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
           { key: "basic", label: "Basic Details", icon: Building2 },
           { key: "branding", label: "Branding", icon: Palette },
           { key: "contact", label: "Contact Info", icon: Phone },
+          { key: "signatures", label: "Signatures", icon: Save },
         ].map((t) => (
           <button
             key={t.key}
@@ -358,6 +402,56 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
                 </a>
               </div>
               <textarea rows={2} className="form-input tamil" dir="auto" {...register("addressTamil")} placeholder="அலுவலக முகவரி" />
+            </div>
+          </div>
+        )}
+        {tab === "signatures" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[
+                { field: "sigChairmanUrl", label: "Chairman Signature" },
+                { field: "sigPresidentUrl", label: "President Signature" },
+                { field: "sigVicePresidentUrl", label: "Vice President Signature" },
+                { field: "sigSecretaryUrl", label: "Secretary Signature" },
+                { field: "sigJointSecretaryUrl", label: "Joint Secretary Signature" },
+                { field: "sigTreasurerUrl", label: "Treasurer Signature" },
+              ].map((s) => (
+                <div key={s.field}>
+                  <label className="form-label">{s.label}</label>
+                  <div 
+                    className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors cursor-pointer group"
+                    onClick={() => {
+                      const input = document.createElement("input");
+                      input.type = "file";
+                      input.accept = "image/*";
+                      input.onchange = (e) => {
+                        const file = (e.target as HTMLInputElement).files?.[0];
+                        if (file) handleSignatureUpload(file, s.field as any);
+                      };
+                      input.click();
+                    }}
+                  >
+                    {(sigUrls as any)[s.field] ? (
+                      <div className="relative w-full h-20">
+                        <img src={(sigUrls as any)[s.field]} alt={s.label} className="w-full h-full object-contain mix-blend-multiply" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-lg flex items-center justify-center">
+                          <Upload size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                    ) : (
+                      <Upload size={24} className="text-slate-300 mb-1" />
+                    )}
+                    <p className="text-[10px] font-medium text-slate-500 mt-1">
+                      {uploadingSigs[s.field] ? "Uploading..." : (sigUrls as any)[s.field] ? "Change Signature" : "Upload Signature"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+              <p className="text-xs text-amber-700 leading-relaxed">
+                <strong>Tip:</strong> For best results, use images with a transparent background (PNG) or a clean white background. Signatures should be horizontal and well-lit.
+              </p>
             </div>
           </div>
         )}

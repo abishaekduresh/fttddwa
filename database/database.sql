@@ -207,6 +207,14 @@ CREATE TABLE IF NOT EXISTS `association_settings` (
     `email`                    VARCHAR(255) NULL,
     `phone`                    VARCHAR(20)  NULL,
     `enableMemberRegistration` BOOLEAN      NOT NULL DEFAULT true,
+    `enableIdCard`             BOOLEAN      NOT NULL DEFAULT true,
+    `idCardSettings`           JSON         NULL,
+    `sigChairmanUrl`           VARCHAR(500) NULL,
+    `sigPresidentUrl`          VARCHAR(500) NULL,
+    `sigVicePresidentUrl`      VARCHAR(500) NULL,
+    `sigSecretaryUrl`          VARCHAR(500) NULL,
+    `sigJointSecretaryUrl`     VARCHAR(500) NULL,
+    `sigTreasurerUrl`          VARCHAR(500) NULL,
     `updatedAt`                DATETIME(3)  NOT NULL,
 
     PRIMARY KEY (`id`)
