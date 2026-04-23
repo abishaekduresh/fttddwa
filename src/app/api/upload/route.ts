@@ -42,6 +42,10 @@ export async function POST(req: NextRequest) {
       width = 1080;
       height = 1080;
       subDir = "branding";
+    } else if (type === "signatures") {
+      width = 771;
+      height = 600;
+      subDir = "signatures";
     }
 
     const processedBuffer = await sharp(buffer)
