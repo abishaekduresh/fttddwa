@@ -27,7 +27,10 @@ export async function syncWhatsAppMessageStatuses() {
 
   const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
 
-  // Raw query — bypasses stale Prisma client (statusCheckCount not in generated types yet)
+  // Poll all non-terminal messages within the 48-hour window.
+  // Terminal states (failed, read) are never re-polled.
+  // statusCheckCount < N cap removed — rely on the cutoff window instead so
+  // messages that are read hours after delivery are still captured.
   const logsToTrack = await prisma.$queryRaw<RawLog[]>`
     SELECT
       l.id, l.vendorId, l.vendorMessageId, l.status, l.messageType,
@@ -42,9 +45,8 @@ export async function syncWhatsAppMessageStatuses() {
       v.walletBalance AS vWalletBalance
     FROM whatsapp_logs l
     JOIN whatsapp_vendors v ON v.id = l.vendorId
-    WHERE l.status IN ('sent', 'delivered', 'processing')
+    WHERE l.status NOT IN ('failed', 'read', 'pending')
       AND l.vendorMessageId IS NOT NULL
-      AND l.statusCheckCount < 4
       AND l.createdAt >= ${cutoff}
     LIMIT 50
   `;
@@ -53,6 +55,11 @@ export async function syncWhatsAppMessageStatuses() {
     console.log("[WA Status] No messages require status tracking.");
     return { updated: 0 };
   }
+
+  // Status progression order — never allow a downgrade
+  const STATUS_RANK: Record<string, number> = {
+    pending: 0, processing: 1, sent: 2, delivered: 3, read: 4, failed: 5,
+  };
 
   let updatedCount = 0;
 
@@ -74,7 +81,12 @@ export async function syncWhatsAppMessageStatuses() {
 
       const result = await vendorInstance.getMessageStatus(log.vendorMessageId);
       const nextCheckCount = Number(log.statusCheckCount) + 1;
-      const newStatus = result.status;
+
+      // Never downgrade: if vendor returns a lower-rank status (e.g. "sent"
+      // when DB already has "delivered"), keep the current DB status.
+      const vendorRank  = STATUS_RANK[result.status] ?? 0;
+      const currentRank = STATUS_RANK[log.status]    ?? 0;
+      const newStatus   = vendorRank >= currentRank ? result.status : log.status;
 
       // Only update errorMessage when the message actually failed
       const newErrorMessage = newStatus === "failed"
