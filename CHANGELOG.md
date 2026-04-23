@@ -15,6 +15,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
     - High-contrast name bar and position details.
     - Specialized styling for business name (Pink) and location details (Blue).
     - Signature placeholders in a professional green footer.
+- **Improved Validation Robustness** — Updated the association settings schema to correctly handle `null` values for optional fields, preventing "Validation failed" errors when saving settings with empty optional data.
 - **Unified PDF Generation** — Created a centralized `generateIdCardPdf` service to ensure identical design across all access points.
 - **Auto-Validity Tracking** — ID cards now automatically compute a 2-year validity period from the member's join date.
 
