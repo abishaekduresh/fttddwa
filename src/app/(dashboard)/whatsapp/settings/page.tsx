@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, Loader2, Save, RefreshCw, Eye, EyeOff, Link, ExternalLink } from "lucide-react";
+import { Settings, Loader2, Save, RefreshCw, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -198,36 +198,6 @@ export default function WhatsAppSettingsPage() {
               ))}
             </select>
             <p className="text-xs text-slate-400 mt-1">Messages will only be sent when a vendor is active and has wallet balance.</p>
-          </div>
-        </div>
-
-        {/* Scheduler */}
-        <div className="card p-5 space-y-4">
-          <h2 className="font-semibold text-slate-900">Scheduler</h2>
-          <div>
-            <label className="form-label">Daily Cron Time (IST)</label>
-            <input
-              type="time"
-              className="form-input w-40"
-              value={settings.cronTime}
-              onChange={e => setSettings(s => s && ({ ...s, cronTime: e.target.value }))}
-              disabled={!canManage}
-            />
-            <p className="text-xs text-slate-400 mt-1">Birthday and anniversary messages are queued at this time every day.</p>
-          </div>
-          <div>
-            <label className="form-label">Retry Attempts</label>
-            <input
-              type="number"
-              className="form-input w-24"
-              value={settings.retryAttempts}
-              onChange={e => {
-                const v = e.target.valueAsNumber;
-                setSettings(s => s && ({ ...s, retryAttempts: isNaN(v) ? 0 : Math.min(5, Math.max(0, v)) }));
-              }}
-              min={0} max={5}
-              disabled={!canManage}
-            />
           </div>
         </div>
 
