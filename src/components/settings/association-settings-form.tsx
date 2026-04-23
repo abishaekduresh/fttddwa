@@ -369,6 +369,30 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
               </div>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="form-label mb-0">Tagline (English)</label>
+                  <button 
+                    type="button" 
+                    onClick={() => handleTranslate("tagline", "taglineTamil")}
+                    className="text-[10px] flex items-center gap-1 text-primary hover:underline"
+                  >
+                    {translatingField === "taglineTamil" ? <Loader2 size={10} className="animate-spin" /> : <Wand2 size={10} />}
+                    Auto-generate Tamil
+                  </button>
+                </div>
+                <input type="text" className="form-input" {...register("tagline")} placeholder="e.g. Serving Tent Dealers since 1990" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="form-label mb-0">Tagline (Tamil)</label>
+                  <a href="https://www.google.com/intl/en/inputtools/try/" target="_blank" className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-slate-600">
+                    <ExternalLink size={10} /> Google Input Tools
+                  </a>
+                </div>
+                <input type="text" className="form-input tamil" dir="auto" {...register("taglineTamil")} placeholder="முழக்கம் / குறிக்கோள்" />
+              </div>
             </div>
 
             {/* ID Card Customization Section */}
