@@ -23,6 +23,8 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 - **Unified Path Structure** — Standardized ID card PDF URLs with clean suffixes:
     - `/members/id-card/:token.pdf` (Public secure access)
     - `/api/members/card/:uuid.pdf` (Admin authenticated access)
+- **Corporate ID Card Refresh** — Replaced the basic portrait design with a premium corporate layout using Slate-900 gradients, gold typography accents, and improved information density.
+- **Photo Fetching Fix** — Improved image fetching logic in the PDF generator to correctly handle relative URLs, ensuring member photos are visible regardless of environment.
 - **Database Schema (v1.7.0)** — Added signature URL columns to the `association_settings` model.
 
 ---

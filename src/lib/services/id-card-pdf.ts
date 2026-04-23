@@ -13,11 +13,20 @@ function fmtDate(d: string | Date | null): string {
 }
 
 async function fetchImageAsJpeg(url: string): Promise<Buffer | null> {
+  if (!url) return null;
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    let finalUrl = url;
+    if (url.startsWith("/")) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      finalUrl = `${baseUrl}${url}`;
+    }
+    const res = await fetch(finalUrl, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
     return await sharp(Buffer.from(await res.arrayBuffer())).jpeg({ quality: 85 }).toBuffer();
-  } catch { return null; }
+  } catch (err) { 
+    console.error(`PDF Gen: Failed to fetch image ${url}`, err);
+    return null; 
+  }
 }
 
 /**
@@ -29,7 +38,11 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
   const [memberRow, settingRows] = await Promise.all([
     getMemberCardByUuid(memberUuid),
     prisma.$queryRaw<any[]>`
-      SELECT enableIdCard, idCardSettings, name, nameTamil, shortName, shortNameTamil, logo1Url, logo2Url, tagline, taglineTamil, regNumber, address, addressTamil, state, stateTamil, email, phone
+      SELECT 
+        enableIdCard, idCardSettings, name, nameTamil, shortName, shortNameTamil, 
+        logo1Url, logo2Url, tagline, taglineTamil, regNumber, address, addressTamil, 
+        state, stateTamil, email, phone,
+        sigChairmanUrl, sigPresidentUrl, sigVicePresidentUrl, sigSecretaryUrl, sigJointSecretaryUrl, sigTreasurerUrl
       FROM association_settings WHERE id = 1 LIMIT 1
     `,
   ]);
@@ -50,7 +63,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
   } catch {}
 
   const s = {
-    primaryColor:     (cs.primaryColor    as string) || "#1e40af",
+    primaryColor:     (cs.primaryColor    as string) || "#1e293b", // Default to Slate-800
     showPhoto:        (cs.showPhoto        as boolean) ?? true,
     showMembershipId: (cs.showMembershipId as boolean) ?? true,
     showPhone:        (cs.showPhone        as boolean) ?? true,
@@ -63,10 +76,11 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
   };
 
   // 3. Fetch images
-  const [logo1Buf, logo2Buf, photoBuf] = await Promise.all([
+  const [logo1Buf, logo2Buf, photoBuf, sigBuf] = await Promise.all([
     setting?.logo1Url ? fetchImageAsJpeg(setting.logo1Url) : Promise.resolve(null),
     setting?.logo2Url ? fetchImageAsJpeg(setting.logo2Url) : Promise.resolve(null),
     (s.showPhoto && memberRow.photoUrl) ? fetchImageAsJpeg(memberRow.photoUrl) : Promise.resolve(null),
+    setting?.sigChairmanUrl ? fetchImageAsJpeg(setting.sigChairmanUrl) : Promise.resolve(null),
   ]);
 
   // 4. Build PDF
@@ -81,104 +95,132 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
   const pdfDone = new Promise<void>((resolve) => doc.on("end", resolve));
 
   // Colors
-  const COLOR_DARK = "#1a1a1a";
-  const COLOR_PINK = "#e91e63";
-  const COLOR_BLUE = "#0277bd";
-  const COLOR_GREEN = "#4caf50";
+  const PRIMARY = s.primaryColor;
+  const ACCENT = "#0f172a"; // Slate-900
+  const COLOR_TEXT = "#334155"; // Slate-700
+  const COLOR_MUTED = "#64748b"; // Slate-500
   const COLOR_WHITE = "#ffffff";
+  const COLOR_GOLD = "#ca8a04"; // Professional accent
+  const COLOR_PINK = "#db2777"; // Pink-600
+  const COLOR_BLUE = "#2563eb"; // Blue-600
 
-  // Header Section
-  const HEADER_H = 100;
-  doc.rect(0, 0, W, HEADER_H).fill(COLOR_DARK);
-
-  const LOGO_SIZE = 48;
-  const LOGO_Y = 10;
-  if (logo1Buf) { try { doc.image(logo1Buf, 10, LOGO_Y, { width: LOGO_SIZE, height: LOGO_SIZE }); } catch {} }
-  if (logo2Buf) { try { doc.image(logo2Buf, W - LOGO_SIZE - 10, LOGO_Y, { width: LOGO_SIZE, height: LOGO_SIZE }); } catch {} }
-
-  doc.fillColor(COLOR_WHITE).font("Helvetica-Bold").fontSize(9)
-     .text(setting?.name || "Association", 65, 15, { width: W - 130, align: "center" });
+  // --- Header Section ---
+  const HEADER_H = 110;
   
-  doc.font("Helvetica").fontSize(7)
-     .text(setting?.regNumber ? `Reg. No: ${setting.regNumber}` : "", 0, 45, { width: W, align: "center" })
-     .text(setting?.address || "", 0, 55, { width: W, align: "center" })
-     .text(setting?.state || "Tamil Nadu", 0, 65, { width: W, align: "center" })
-     .text(`Cell : ${setting?.phone || ""}`, 0, 75, { width: W, align: "center" });
+  // Gradient background for header
+  const grad = doc.linearGradient(0, 0, 0, HEADER_H);
+  grad.stop(0, "#1e293b").stop(1, "#0f172a");
+  doc.rect(0, 0, W, HEADER_H).fill(grad);
 
-  // Identity Section (Photo + Name Bar)
-  const PHOTO_W = 75, PHOTO_H = 85;
-  const PHOTO_X = 15, PHOTO_Y = HEADER_H + 15;
+  // Logos
+  const LOGO_SIZE = 44;
+  const LOGO_Y = 15;
+  if (logo1Buf) { try { doc.image(logo1Buf, 15, LOGO_Y, { width: LOGO_SIZE, height: LOGO_SIZE }); } catch {} }
+  if (logo2Buf) { try { doc.image(logo2Buf, W - LOGO_SIZE - 15, LOGO_Y, { width: LOGO_SIZE, height: LOGO_SIZE }); } catch {} }
+
+  // Association Name & Details
+  doc.fillColor(COLOR_WHITE).font("Helvetica-Bold").fontSize(10)
+     .text(setting?.name || "Association", 65, LOGO_Y + 2, { width: W - 130, align: "center", lineGap: 1 });
   
-  doc.rect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H).lineWidth(1).strokeColor("#880e4f").stroke();
+  doc.font("Helvetica").fontSize(7).fillColor("#cbd5e1")
+     .text(setting?.regNumber ? `Reg. No: ${setting.regNumber}` : "", 0, 50, { width: W, align: "center" })
+     .text(setting?.address || "", 15, 60, { width: W - 30, align: "center" })
+     .text(`${setting?.state || "Tamil Nadu"} | Cell: ${setting?.phone || ""}`, 0, 80, { width: W, align: "center" });
+
+  // --- Identity Section ---
+  const PHOTO_W = 85, PHOTO_H = 100;
+  const PHOTO_X = 15, PHOTO_Y = HEADER_H + 20;
+  
+  // Photo with clean border and shadow
+  doc.save();
+  doc.rect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H).lineWidth(1.5).strokeColor("#e2e8f0").stroke();
+  
   if (photoBuf) {
     try {
       doc.image(photoBuf, PHOTO_X + 2, PHOTO_Y + 2, {
         width: PHOTO_W - 4, height: PHOTO_H - 4, cover: [PHOTO_W - 4, PHOTO_H - 4],
       });
     } catch {
-      doc.rect(PHOTO_X + 2, PHOTO_Y + 2, PHOTO_W - 4, PHOTO_H - 4).fill("#f5f5f5");
+      doc.rect(PHOTO_X + 2, PHOTO_Y + 2, PHOTO_W - 4, PHOTO_H - 4).fill("#f8fafc");
     }
+  } else {
+    // Placeholder if no photo
+    doc.rect(PHOTO_X + 2, PHOTO_Y + 2, PHOTO_W - 4, PHOTO_H - 4).fill("#f1f5f9");
+    doc.fillColor("#94a3b8").font("Helvetica").fontSize(8)
+       .text("NO PHOTO", PHOTO_X, PHOTO_Y + 45, { width: PHOTO_W, align: "center" });
   }
+  doc.restore();
 
-  const BAR_X = PHOTO_X + PHOTO_W + 5;
-  const BAR_Y = PHOTO_Y + 20;
-  const BAR_W = W - BAR_X - 10;
-  const BAR_H = 35;
-  doc.rect(BAR_X, BAR_Y, BAR_W, BAR_H).fill(COLOR_DARK);
+  // Name & Position Bar
+  const NAME_X = PHOTO_X + PHOTO_W + 12;
+  const NAME_Y = PHOTO_Y + 15;
+  const NAME_W = W - NAME_X - 15;
+
+  doc.fillColor(ACCENT).font("Helvetica-Bold").fontSize(13)
+     .text(memberRow.name.toUpperCase(), NAME_X, NAME_Y, { width: NAME_W, align: "left" });
   
-  doc.fillColor(COLOR_WHITE).font("Helvetica-Bold").fontSize(11)
-     .text(memberRow.name.toUpperCase(), BAR_X + 5, BAR_Y + 6, { width: BAR_W - 10, align: "center", lineBreak: false });
-  doc.fontSize(8)
-     .text(memberRow.position?.toUpperCase() || "MEMBER", BAR_X + 5, BAR_Y + 20, { width: BAR_W - 10, align: "center", lineBreak: false });
+  doc.fillColor(COLOR_GOLD).font("Helvetica-Bold").fontSize(9)
+     .text(memberRow.position?.toUpperCase() || "MEMBER", NAME_X, NAME_Y + 18, { width: NAME_W, align: "left" });
 
-  // Business Section
-  let cy = PHOTO_Y + PHOTO_H + 15;
+  // --- Business Section ---
+  let cy = PHOTO_Y + PHOTO_H + 20;
+  
   if (s.showBusinessName && memberRow.businessName) {
-    doc.fillColor(COLOR_PINK).font("Helvetica-Bold").fontSize(12)
-       .text(memberRow.businessName.toUpperCase(), 0, cy, { width: W, align: "center" });
-    cy += 16;
+    doc.fillColor(COLOR_PINK).font("Helvetica-Bold").fontSize(11)
+       .text(memberRow.businessName.toUpperCase(), 15, cy, { width: W - 30, align: "center" });
+    cy += 14;
     
-    const location = [memberRow.village, memberRow.taluk].filter(Boolean).join(", ");
-    doc.fillColor(COLOR_BLUE).font("Helvetica-Bold").fontSize(11)
-       .text(location, 0, cy, { width: W, align: "center" });
+    const location = [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", ");
+    doc.fillColor(COLOR_BLUE).font("Helvetica-Bold").fontSize(9)
+       .text(location, 15, cy, { width: W - 30, align: "center" });
     cy += 20;
   }
 
-  doc.moveTo(20, cy).lineTo(W - 20, cy).lineWidth(0.5).strokeColor("#dddddd").stroke();
-  cy += 10;
+  // Divider
+  doc.moveTo(25, cy).lineTo(W - 25, cy).lineWidth(0.5).strokeColor("#e2e8f0").stroke();
+  cy += 15;
 
-  // Details Section
-  const LABEL_X = 35, VALUE_X = 100;
+  // --- Details Grid ---
+  const LABEL_X = 30, VALUE_X = 95;
   const ROW_H = 18;
-  doc.fillColor(COLOR_BLUE).font("Helvetica-Bold").fontSize(10);
+  doc.fontSize(9.5);
 
   const drawRow = (label: string, value: string) => {
-    doc.text(label, LABEL_X, cy)
-       .text(":", VALUE_X - 10, cy)
-       .text(value, VALUE_X, cy);
+    doc.fillColor(COLOR_MUTED).font("Helvetica").text(label, LABEL_X, cy)
+       .fillColor(COLOR_TEXT).font("Helvetica-Bold").text(value, VALUE_X, cy);
     cy += ROW_H;
   };
 
-  if (s.showPhone) drawRow("Cell", memberRow.phone);
-  if (s.showDateOfBirth && memberRow.dateOfBirth) drawRow("DOB", fmtDate(memberRow.dateOfBirth));
+  if (s.showPhone) drawRow("Cell No", memberRow.phone);
   
   if (s.showJoinedAt) {
-    const start = new Date(memberRow.joinedAt).getFullYear();
-    drawRow("Valid", `${start} - ${start + 2}`);
+    const startYear = new Date(memberRow.joinedAt).getFullYear();
+    drawRow("Validity", `${startYear} - ${startYear + 2}`);
   }
   
-  if (s.showMembershipId) drawRow("ID. No.", memberRow.membershipId);
+  if (s.showMembershipId) drawRow("ID Number", memberRow.membershipId);
 
-  // Footer Section
-  const FOOTER_Y = H - 35;
-  const FOOTER_H_RECT = 35;
-  doc.rect(0, FOOTER_Y, W, FOOTER_H_RECT).fill(COLOR_GREEN);
+  // --- Footer Section ---
+  const FOOTER_H = 45;
+  const FOOTER_Y = H - FOOTER_H;
 
-  doc.fillColor("#880e4f").font("Helvetica-Oblique").fontSize(10)
-     .text(memberRow.name, W - 110, FOOTER_Y - 15, { width: 100, align: "center" });
+  // Signature placement
+  if (sigBuf) {
+    try {
+      const SIG_W = 70;
+      doc.image(sigBuf, W - SIG_W - 20, FOOTER_Y - 45, { width: SIG_W, height: 30, fit: [SIG_W, 30] });
+    } catch {}
+  }
   
-  doc.fillColor(COLOR_WHITE).font("Helvetica").fontSize(9)
-     .text("State Chairman", 0, FOOTER_Y + 12, { width: W, align: "center" });
+  // Signature text/name above the bar
+  doc.fillColor(COLOR_PINK).font("Helvetica-Oblique").fontSize(9)
+     .text(memberRow.name, W - 115, FOOTER_Y - 12, { width: 100, align: "center" });
+
+  // Bottom Bar
+  doc.rect(0, FOOTER_Y, W, FOOTER_H).fill("#16a34a"); // Success-600 Green
+  
+  doc.fillColor(COLOR_WHITE).font("Helvetica-Bold").fontSize(10)
+     .text("STATE CHAIRMAN", 0, FOOTER_Y + 16, { width: W, align: "center" });
 
   doc.end();
   await pdfDone;
