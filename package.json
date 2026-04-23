@@ -1,6 +1,6 @@
 {
   "name": "fttddwa",
-  "version": "1.5.0",
+  "version": "1.5.2",
   "description": "Federation of Tamil Nadu Tent Dealers & Decorators Welfare Association - Member Management System",
   "private": true,
   "scripts": {
@@ -19,7 +19,7 @@
     "db:studio": "dotenv -e .env.local -- npx prisma studio",
     "db:reset": "dotenv -e .env.local -- npx prisma migrate reset",
     "worker": "dotenv -e .env.local -- ts-node -r tsconfig-paths/register --project tsconfig.worker.json worker.ts",
-    "worker:build": "tsc --project tsconfig.worker.json",
+    "worker:build": "npx tsc --project tsconfig.worker.json",
     "worker:start": "node dist/worker/worker.js",
     "prod:start": "pm2 start ecosystem.config.js",
     "prod:stop": "pm2 stop ecosystem.config.js",

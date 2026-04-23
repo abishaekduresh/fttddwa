@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 1.5.0** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
+> **Version 1.5.2** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
 
 ---
 
@@ -15,7 +15,7 @@
 - **Membership ID Generation** — Auto-generated IDs in format `FTTD{YY}{NNNNN}` (e.g. `FTTD260001`)
 - **Wedding Date Tracking** — Record and display anniversary dates for all members
 - **Public Self-Registration** — Members can register at `/members/register` (toggleable by admin); submitted records are created as `INACTIVE` pending approval
-- **WhatsApp Module** — Automated + Manual messaging with multi-vendor support, fallback logic, and real-time status tracking
+- **WhatsApp Module** — Automated + Manual messaging with multi-vendor support, fallback logic, and real-time status tracking; cron triggered via admin UI or external HTTP call (no worker required)
 - **Membership Analytics** — Dashboard stats for membership growth and WhatsApp credit consumption
 - **Photo Upload** — Secure passport-size photo upload with type + size validation (stored in Vercel Blob)
 - **Tamil Nadu Coverage** — All 38 districts and their taluks pre-loaded; "Others" option for custom districts
@@ -29,6 +29,7 @@
 - Account lockout after 10 failed login attempts (5-min cooldown)
 - Rate limiting: auth endpoints by IP (strict), authenticated APIs by user ID
 - Idle-aware proactive token refresh; multi-tab debounce prevents duplicate DB hits
+- `apiFetch` client utility — all dashboard API calls auto-refresh on 401, redirect to login with toast on session expiry
 - Input sanitization (XSS protection via `sanitize-html`)
 - Security headers via Next.js config (CSP, X-Frame-Options, HSTS-ready)
 

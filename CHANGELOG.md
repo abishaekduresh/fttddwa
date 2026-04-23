@@ -6,6 +6,31 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [1.5.2] — 2026-04-23
+
+### Added
+- **`apiFetch` Client Utility** — New `src/lib/api/client-fetch.ts` is a drop-in replacement for `fetch()` in all dashboard components. On a 401 response it automatically attempts a silent token refresh, retries the original request once, and if the session cannot be recovered shows a *"Session expired. Redirecting to sign in…"* toast before hard-redirecting to `/login` after 1.5 s.
+
+### Changed
+- **All 14 Dashboard Pages + 2 Shared Components + `use-association` Hook** — Migrated from raw `fetch()` to `apiFetch()`. Every authenticated API call in the dashboard now handles 401 consistently without showing a bare "Unauthorized" error to the user.
+- **Dashboard Layout** — `redirectToLogin()` helper added; all redirect-to-login paths (initAuth failure, proactive refresh failure) now show a descriptive toast before the redirect instead of navigating silently.
+
+### Fixed
+- **"Unauthorized" Toast Without Redirect** — When a session expired mid-session, page components displayed a raw "Unauthorized" error and stayed on the current page. Now any 401 from any dashboard API call triggers an automatic refresh attempt and, on failure, a clear redirect to the login page.
+
+---
+
+## [1.5.1] — 2026-04-23
+
+### Changed
+- **WhatsApp Cron Worker** — Removed the internal `checkAndRunScheduler()` function and its 30-second poll timer. The cron is now triggered exclusively via the admin UI button or an external HTTP call. The worker retains only the job-poll loop (stuck-job recovery) and the DLR status-sync timer.
+- **WhatsApp Settings UI** — Removed the *Scheduler* card (Daily Cron Time + Retry Attempts fields) since scheduling is now fully external.
+
+### Fixed
+- **"Run Cron Now" Button Always Failing** — The cron trigger route (`/api/whatsapp/cron/trigger`) is public in middleware so `x-user-role` was never injected. The route now manually decodes the `access_token` cookie to verify the caller's role, so the admin UI button works correctly.
+
+---
+
 ## [1.5.0] — 2026-04-22
 
 ### Added
@@ -223,6 +248,8 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.5.2 | 2026-04-23 | Session expiry redirect with toast across all dashboard pages |
+| 1.5.1 | 2026-04-23 | WhatsApp cron Run-Now fix, remove internal scheduler, remove Scheduler UI |
 | 1.5.0 | 2026-04-22 | Auth hardening, zero-DB /me, batched queries, idle refresh, multi-tab debounce |
 | 1.4.0 | 2026-04-21 | Vercel deployment, Blob storage, public registration, APP_ENV/TIMEZONE vars |
 | 1.3.1 | 2026-04-20 | PM2 Production Support & Deployment Optimization |
@@ -233,7 +260,9 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/your-org/fttddwa/compare/v1.5.1...v1.5.2
+[1.5.1]: https://github.com/your-org/fttddwa/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/your-org/fttddwa/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/your-org/fttddwa/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/your-org/fttddwa/releases/tag/v1.3.1
