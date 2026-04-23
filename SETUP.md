@@ -318,6 +318,7 @@ npm run test:watch
 | View audit logs | ✅ | ✅ | ❌ | ❌ |
 | View roles | ✅ | ✅ | ❌ | ❌ |
 | Manage settings | ✅ | ❌ | ❌ | ❌ |
+| App settings | ✅ | ✅ | ❌ | ❌ |
 
 ---
 
@@ -326,7 +327,7 @@ npm run test:watch
 > [!TIP]
 > **Logo & Signatures:**
 > - **Logos:** Both Primary (Square/Icon) and Secondary (Banner/Seal) logos should be uploaded at **1080x1080px** for optimal quality across the dashboard and printed reports. Supported formats: PNG, WebP (Max 1MB).
-> - **Signatures:** For best results on ID cards, use signature images with a **transparent background (PNG)**. Ensure signatures are horizontal and well-lit. Max size: 500KB.
+> - **Signatures:** For best results on ID cards, use signature images with a **transparent background (PNG)**. Ensure signatures are horizontal and well-lit. Max size: 500KB. **Resolution is standardized to 650x300px.**
 
 ---
 

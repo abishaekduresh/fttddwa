@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 1.7.0** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
+> **Version 1.8.0** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
 
 ---
 
@@ -15,7 +15,7 @@
 - **Membership ID Generation** — Auto-generated IDs in format `FTTD{YY}{NNNNN}` (e.g. `FTTD260001`)
 - **Wedding Date Tracking** — Record and display anniversary dates for all members
 - **Public Self-Registration** — Members can register at `/members/register` (toggleable by admin); submitted records are created as `INACTIVE` pending approval
-- **Member ID Card** — Public digital ID card system. Members look up by phone or Membership ID and are securely redirected to a one-time viewable PDF via a proxied URL (`/members/id-card/:token.pdf`). Card design features a modern portrait layout with automated validity calculation and digital signatures.
+- **Member ID Card** — Public digital ID card system. Members look up by phone or Membership ID and are securely redirected to a one-time viewable PDF via a proxied URL (`/members/id-card/:token.pdf`). Card design features a modern portrait layout with automated validity calculation, digital signatures, and **full admin customization (colors, titles, visibility)**.
 - **WhatsApp Module** — Automated + Manual messaging with multi-vendor support, fallback logic, and real-time status tracking; cron triggered via admin UI or external HTTP call (no worker required)
 - **Membership Analytics** — Dashboard stats for membership growth and WhatsApp credit consumption
 - **Photo Upload** — Secure passport-size photo upload with type + size validation (stored in Vercel Blob)
@@ -166,7 +166,7 @@ Add an HTTP Request node in n8n scheduled at **09:00 IST (03:30 UTC)** daily.
 > [!TIP]
 > **Logo & Signatures:**
 > - **Logos:** Both Primary and Secondary logos should be **1080x1080px** (Max 1MB).
-> - **Signatures:** Use images with a transparent background (PNG) or clean white background. For best results on ID cards, use a horizontal orientation (Max 500KB).
+> - **Signatures:** Use images with a transparent background (PNG) or clean white background. For best results on ID cards, use a horizontal orientation (Max 500KB). **Resolution is automatically standardized to 650x300px.**
 
 ---
 

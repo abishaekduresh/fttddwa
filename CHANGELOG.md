@@ -6,6 +6,25 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [1.8.0] — 2026-04-24
+
+### Added
+- **ID Card Customization UI** — New configuration panel in Association Settings (Branding tab) allowing administrators to dynamically set the ID card's primary theme color, main title, and footer role title.
+- **Dynamic Field Visibility** — Added toggle switches to show/hide specific member details on the ID card (Photo, ID Number, Phone, Business Name).
+- **Signature Resolution Standardization** — Implemented strict **650x300px** resolution enforcement for all signature uploads in both frontend validation and backend processing to ensure professional rendering.
+- **Signature Metadata Display** — Real-time display of dimensions and file size for uploaded signatures in the settings form.
+
+### Changed
+- **Refined ID Card Footer** — Standardized the footer layout by removing individual member names and replacing them with a customizable professional role title (e.g., "STATE CHAIRMAN").
+- **Improved Signature Visibility** — Increased the display size and optimized the fit of signatures on the generated PDF for better legibility.
+- **PDF Generation Engine Refresh** — Updated the centralized PDF service to respect dynamic branding colors and titles defined in the association settings.
+
+### Fixed
+- **Settings Form Syntax Error** — Resolved a JSX nesting issue that caused a 500 error when accessing the Association Settings or Login pages.
+- **Missing Tagline Fields** — Restored the English and Tamil tagline fields that were accidentally omitted during a previous layout update.
+
+---
+
 ## [1.7.0] — 2026-04-24
 
 ### Added
@@ -311,6 +330,8 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.8.0 | 2026-04-24 | ID card customization UI, refined footer, standardized signature resolution |
+| 1.7.0 | 2026-04-24 | Redesigned Portrait ID Card, Association Signatures Management |
 | 1.6.1 | 2026-04-24 | Direct PDF redirect, proxied URLs, modern error pages, sanitization fix |
 | 1.6.0 | 2026-04-23 | Member UUID, public ID card page, ID card customization, Print/PDF export |
 | 1.5.2 | 2026-04-23 | Session expiry redirect with toast across all dashboard pages |
@@ -325,7 +346,11 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/your-org/fttddwa/compare/v1.7.0...v1.8.0
+[1.7.0]: https://github.com/your-org/fttddwa/compare/v1.6.1...v1.7.0
+[1.6.1]: https://github.com/your-org/fttddwa/compare/v1.6.0...v1.6.1
+[1.6.0]: https://github.com/your-org/fttddwa/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/your-org/fttddwa/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/your-org/fttddwa/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/your-org/fttddwa/compare/v1.4.0...v1.5.0
