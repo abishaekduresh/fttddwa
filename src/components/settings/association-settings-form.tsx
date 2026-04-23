@@ -31,6 +31,7 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
     sigTreasurerUrl: initialData?.sigTreasurerUrl || "",
   });
   const [uploadingSigs, setUploadingSigs] = useState<Record<string, boolean>>({});
+  const [sigMetadata, setSigMetadata] = useState<Record<string, { width: number, height: number, size: string }>>({});
   const fileInput1Ref = useRef<HTMLInputElement>(null);
   const fileInput2Ref = useRef<HTMLInputElement>(null);
 
@@ -87,6 +88,36 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
     }
   }, [initialData, reset]);
 
+  // Fetch dimensions for existing signatures
+  useEffect(() => {
+    const fetchDims = async () => {
+      const metadata: Record<string, any> = {};
+      const fields = [
+        "sigChairmanUrl", "sigPresidentUrl", "sigVicePresidentUrl", 
+        "sigSecretaryUrl", "sigJointSecretaryUrl", "sigTreasurerUrl"
+      ];
+      
+      for (const f of fields) {
+        const url = (sigUrls as any)[f];
+        if (url) {
+          try {
+            const img = new Image();
+            img.src = url;
+            await new Promise((resolve) => {
+              img.onload = () => {
+                metadata[f] = { width: img.width, height: img.height, size: "Existing" };
+                resolve(null);
+              };
+              img.onerror = () => resolve(null);
+            });
+          } catch {}
+        }
+      }
+      setSigMetadata(metadata);
+    };
+    fetchDims();
+  }, [sigUrls]);
+
   const handleLogoUpload = async (file: File, index: 1 | 2) => {
     const setUploading = index === 1 ? setUploadingLogo1 : setUploadingLogo2;
     const setUrl = index === 1 ? setLogo1Url : setLogo2Url;
@@ -123,6 +154,24 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
       return;
     }
 
+    // Validate resolution
+    const dims = await new Promise<{ width: number, height: number } | null>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.width, height: img.height });
+      img.onerror = () => resolve(null);
+      img.src = URL.createObjectURL(file);
+    });
+
+    if (!dims) {
+      toast.error("Could not read image dimensions");
+      return;
+    }
+
+    if (dims.width < 100 || dims.height < 40) {
+      toast.error("Signature resolution too low. Minimum 100x40px required.");
+      return;
+    }
+
     const formData = new FormData();
     formData.append("file", file);
     setUploadingSigs(prev => ({ ...prev, [field]: true }));
@@ -131,7 +180,9 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
       const res = await apiFetch("/api/upload?type=signatures", { method: "POST", body: formData });
       const json = await res.json();
       if (json.success) {
+        const fileSizeStr = (file.size / 1024).toFixed(1) + " KB";
         setSigUrls(prev => ({ ...prev, [field]: json.data.url }));
+        setSigMetadata(prev => ({ ...prev, [field]: { ...dims, size: fileSizeStr } }));
         setValue(field as any, json.data.url, { shouldDirty: true });
         toast.success("Signature uploaded");
       } else {
@@ -467,6 +518,24 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
                       {uploadingSigs[s.field] ? "Uploading..." : (sigUrls as any)[s.field] ? "Change Signature" : "Upload Signature"}
                     </p>
                   </div>
+                  
+                  {/* Resolution & Size Metadata */}
+                  {(sigUrls as any)[s.field] && sigMetadata[s.field] && (
+                    <div className="mt-1.5 flex items-center justify-between px-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-mono font-medium text-slate-400 uppercase tracking-tighter">Res:</span>
+                        <span className="text-[10px] font-semibold text-slate-600">
+                          {sigMetadata[s.field].width} × {sigMetadata[s.field].height}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-mono font-medium text-slate-400 uppercase tracking-tighter">Size:</span>
+                        <span className="text-[10px] font-semibold text-slate-600">
+                          {sigMetadata[s.field].size}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
