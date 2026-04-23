@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState, useCallback } from "react";
 import { Building2, Plus, Trash2, RefreshCw, Eye, EyeOff, Loader2, Wallet, Zap, Pencil } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
@@ -52,7 +54,7 @@ export default function VendorsPage() {
   const fetchVendors = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/whatsapp/vendors");
+      const res = await apiFetch("/api/whatsapp/vendors");
       const json = await res.json();
       if (json.success) setVendors(json.data);
       else toast.error(json.message || "Failed to load vendors");
@@ -134,7 +136,7 @@ export default function VendorsPage() {
     if (!manualBalanceModal) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/whatsapp/vendors/${manualBalanceModal.id}`, {
+      const res = await apiFetch(`/api/whatsapp/vendors/${manualBalanceModal.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -159,7 +161,7 @@ export default function VendorsPage() {
   const handleToggleActive = async (vendor: Vendor) => {
     const nextStatus = vendor.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     try {
-      const res = await fetch(`/api/whatsapp/vendors/${vendor.id}`, {
+      const res = await apiFetch(`/api/whatsapp/vendors/${vendor.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: nextStatus, isActive: nextStatus === "ACTIVE" }),
@@ -176,7 +178,7 @@ export default function VendorsPage() {
   const handleRefreshBalance = async (id: number) => {
     setRefreshingId(id);
     try {
-      const res = await fetch(`/api/whatsapp/vendors/${id}`, {
+      const res = await apiFetch(`/api/whatsapp/vendors/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "refresh_balance" }),
@@ -196,7 +198,7 @@ export default function VendorsPage() {
     if (!confirmDelete) return;
     setDeletingId(confirmDelete.id);
     try {
-      const res = await fetch(`/api/whatsapp/vendors/${confirmDelete.id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/whatsapp/vendors/${confirmDelete.id}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
         toast.success("Vendor deleted");

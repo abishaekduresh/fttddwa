@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -103,7 +105,7 @@ export default function MemberDetailPage() {
     else setNotifyWedding(value);
     setSavingNotify(true);
     try {
-      const res = await fetch(`/api/members/${params.id}/notifications`, {
+      const res = await apiFetch(`/api/members/${params.id}/notifications`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [field]: value }),

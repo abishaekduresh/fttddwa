@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -245,7 +247,7 @@ function UsageStats() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch("/api/whatsapp/stats/usage");
+        const res = await apiFetch("/api/whatsapp/stats/usage");
         const json = await res.json();
         if (json.success) setStats(json.data);
       } catch (err) {
@@ -393,7 +395,7 @@ function CronLogs() {
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/whatsapp/cron/logs?page=${page}&pageSize=20`);
+      const res = await apiFetch(`/api/whatsapp/cron/logs?page=${page}&pageSize=20`);
       const json = await res.json();
       if (json.success) { setLogs(json.data.logs); setPagination(json.data.pagination); }
     } catch { /* silent */ }
@@ -589,7 +591,7 @@ export default function WhatsAppLogsPage() {
       if (dateFrom) params.set("dateFrom", dateFrom);
       if (dateTo) params.set("dateTo", dateTo);
 
-      const res = await fetch(`/api/whatsapp/logs?${params}`);
+      const res = await apiFetch(`/api/whatsapp/logs?${params}`);
       const json = await res.json();
       if (json.success) { setLogs(json.data); setPagination(json.pagination); }
       else toast.error(json.message || "Failed to load logs");
@@ -601,7 +603,7 @@ export default function WhatsAppLogsPage() {
     setLoading(true);
     try {
       // 1. Trigger vendor status sync (Check from vendors)
-      const pollRes = await fetch("/api/whatsapp/dlr/poll", { method: "POST" });
+      const pollRes = await apiFetch("/api/whatsapp/dlr/poll", { method: "POST" });
       const pollJson = await pollRes.json();
       
       if (pollJson.success && pollJson.data?.updated > 0) {

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -29,7 +31,7 @@ export default function EditMemberPage() {
   const handleSubmit = async (data: CreateMemberInput & { photoUrl?: string }) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/members/${params.id}`, {
+      const res = await apiFetch(`/api/members/${params.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

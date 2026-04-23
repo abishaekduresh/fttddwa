@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState, useCallback } from "react";
 import { Send, Search, Loader2, User } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
@@ -84,7 +86,7 @@ export default function SendMessagePage() {
     if (q.length < 2) { setMemberResults([]); return; }
     setSearchingMembers(true);
     try {
-      const res = await fetch(`/api/members?search=${encodeURIComponent(q)}&pageSize=8`);
+      const res = await apiFetch(`/api/members?search=${encodeURIComponent(q)}&pageSize=8`);
       const json = await res.json();
       if (json.success) setMemberResults(json.data);
     } catch { /* silent */ }
@@ -127,7 +129,7 @@ export default function SendMessagePage() {
 
     setSending(true);
     try {
-      const res = await fetch("/api/whatsapp/send", {
+      const res = await apiFetch("/api/whatsapp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

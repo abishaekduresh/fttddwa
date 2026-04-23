@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Plus, Search, Download, Trash2, Eye, Edit, ChevronLeft, ChevronRight, MapPin, Phone } from "lucide-react";
@@ -62,7 +64,7 @@ export default function MembersPage() {
         ...(status && { status }),
       });
 
-      const res = await fetch(`/api/members?${params}`);
+      const res = await apiFetch(`/api/members?${params}`);
       const json = await res.json();
       if (json.success) {
         setMembers(json.data);
@@ -96,7 +98,7 @@ export default function MembersPage() {
     setDeletingId(id);
     setConfirmDelete(null);
     try {
-      const res = await fetch(`/api/members/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/members/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
         toast.success("Member deleted");

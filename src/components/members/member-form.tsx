@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Upload, X, User, Wand2, ExternalLink } from "lucide-react";
@@ -127,7 +129,7 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
       setUploadingPhoto(true);
 
       try {
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        const res = await apiFetch("/api/upload", { method: "POST", body: formData });
         const json = await res.json();
         if (json.success) {
           setPhotoUrl(json.data.url);

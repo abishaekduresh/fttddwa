@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth.store";
 import { Eye, EyeOff, Loader2, Lock, User, Building2, SlidersHorizontal } from "lucide-react";
@@ -40,7 +42,7 @@ export default function SettingsPage() {
   const handleToggleAppSetting = async (key: string, value: boolean) => {
     setSavingApp(true);
     try {
-      const res = await fetch("/api/settings/app/update", {
+      const res = await apiFetch("/api/settings/app/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ [key]: value }),
@@ -62,7 +64,7 @@ export default function SettingsPage() {
   const loadAssocSettings = async () => {
     setLoadingAssoc(true);
     try {
-      const res = await fetch("/api/settings/association");
+      const res = await apiFetch("/api/settings/association");
       const json = await res.json();
       if (json.success) {
         setAssocSettings(json.data);
@@ -87,7 +89,7 @@ export default function SettingsPage() {
 
     setChangingPassword(true);
     try {
-      const res = await fetch("/api/auth/me", {
+      const res = await apiFetch("/api/auth/me", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword, newPassword }),

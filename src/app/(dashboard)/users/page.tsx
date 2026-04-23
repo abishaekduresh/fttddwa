@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Edit, Trash2, Shield, CheckCircle, XCircle, Clock, Calendar } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils/format";
@@ -55,7 +57,7 @@ export default function UsersPage() {
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
-    const res = await fetch("/api/users");
+    const res = await apiFetch("/api/users");
     const json = await res.json();
     if (json.success) setUsers(json.data);
     setLoading(false);
@@ -112,7 +114,7 @@ export default function UsersPage() {
     if (!confirmDelete) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/users/${confirmDelete.id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/users/${confirmDelete.id}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
         toast.success("User deleted");
@@ -129,7 +131,7 @@ export default function UsersPage() {
   };
 
   const toggleActive = async (user: User) => {
-    const res = await fetch(`/api/users/${user.id}`, {
+    const res = await apiFetch(`/api/users/${user.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive: !user.isActive }),

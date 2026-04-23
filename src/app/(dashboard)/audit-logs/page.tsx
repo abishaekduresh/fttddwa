@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState, useCallback } from "react";
 import { ChevronLeft, ChevronRight, CheckCircle, XCircle } from "lucide-react";
 import { formatDateTime } from "@/lib/utils/format";
@@ -45,7 +47,7 @@ export default function AuditLogsPage() {
       ...(resource && { resource }),
       ...(action && { action }),
     });
-    const res = await fetch(`/api/audit-logs?${params}`);
+    const res = await apiFetch(`/api/audit-logs?${params}`);
     const json = await res.json();
     if (json.success) {
       setLogs(json.data);

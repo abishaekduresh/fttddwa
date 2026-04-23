@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState, useCallback } from "react";
 import { Users, UserCheck, TrendingUp, MapPin, Plus, Download, Cake, Heart, Phone, BellOff } from "lucide-react";
 import Link from "next/link";
@@ -72,7 +74,7 @@ export default function DashboardPage() {
     // Optimistic removal
     setCelebrations((prev) => prev.filter((x) => !(x.id === c.id && x.type === c.type)));
     try {
-      const res = await fetch(`/api/members/${c.id}/notifications`, {
+      const res = await apiFetch(`/api/members/${c.id}/notifications`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(c.type === "birthday" ? { notifyBirthday: false } : { notifyWedding: false }),

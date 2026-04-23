@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState, useCallback } from "react";
 import { LayoutTemplate, RefreshCw, Loader2, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
@@ -135,7 +137,7 @@ export default function TemplatesPage() {
   const handleSync = async (vendorId: number) => {
     setSyncing(vendorId);
     try {
-      const res = await fetch("/api/whatsapp/templates/sync", {
+      const res = await apiFetch("/api/whatsapp/templates/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ vendorId }),
@@ -155,7 +157,7 @@ export default function TemplatesPage() {
     if (!confirmDelete) return;
     setDeletingId(confirmDelete.id);
     try {
-      const res = await fetch(`/api/whatsapp/templates/${confirmDelete.id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/whatsapp/templates/${confirmDelete.id}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
         toast.success("Template deleted");

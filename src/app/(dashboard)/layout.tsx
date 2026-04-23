@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
+import { apiFetch } from "@/lib/api/client-fetch";
 
 const REFRESH_INTERVAL_MS = 12 * 60 * 1000;   // 12 minutes
 const IDLE_THRESHOLD_MS   = 10 * 60 * 1000;   // 10 minutes — skip refresh if idle longer
@@ -48,6 +49,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return res.ok;
     };
 
+    const redirectToLogin = (message: string) => {
+      toast.error(message, { id: "session-expired", duration: 4000 });
+      setTimeout(() => router.push("/login"), 1500);
+    };
+
     const initAuth = async () => {
       try {
         let res = await fetch("/api/auth/me");
@@ -56,7 +62,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           // Access token expired — attempt silent refresh
           const refreshed = await silentRefresh();
           if (!refreshed) {
-            router.push("/login");
+            redirectToLogin("Session expired. Please sign in again.");
             return;
           }
           res = await fetch("/api/auth/me");
@@ -66,11 +72,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const json = await res.json();
           setUser(json.data);
         } else {
-          router.push("/login");
+          redirectToLogin("Session expired. Please sign in again.");
         }
       } catch {
-        toast.error("Connection error. Please sign in again.");
-        router.push("/login");
+        redirectToLogin("Connection error. Please sign in again.");
       } finally {
         setLoading(false);
       }
@@ -86,7 +91,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       const ok = await silentRefresh();
       if (!ok) {
-        router.push("/login");
+        redirectToLogin("Session expired. Please sign in again.");
       }
     }, REFRESH_INTERVAL_MS);
 

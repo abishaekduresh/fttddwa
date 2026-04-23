@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Save, Upload, Building2, Palette, Phone, Wand2, ExternalLink } from "lucide-react";
@@ -83,7 +85,7 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
     setUploading(true);
 
     try {
-      const res = await fetch("/api/upload?type=branding", { method: "POST", body: formData });
+      const res = await apiFetch("/api/upload?type=branding", { method: "POST", body: formData });
       const json = await res.json();
       if (json.success) {
         setUrl(json.data.url);
@@ -102,7 +104,7 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
   const onSubmit = async (data: AssociationSettingsInput) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/settings/association", {
+      const res = await apiFetch("/api/settings/association", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),

@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useEffect, useState } from "react";
 import { Settings, Loader2, Save, RefreshCw, Eye, EyeOff, ExternalLink } from "lucide-react";
 import { useAuthStore } from "@/store/auth.store";
@@ -91,7 +93,7 @@ export default function WhatsAppSettingsPage() {
     if (!settings) return;
     setSaving(true);
     try {
-      const res = await fetch("/api/whatsapp/settings", {
+      const res = await apiFetch("/api/whatsapp/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settings),
@@ -110,7 +112,7 @@ export default function WhatsAppSettingsPage() {
   const handleTriggerCron = async () => {
     setTriggeringCron(true);
     try {
-      const res = await fetch("/api/whatsapp/cron/trigger", { method: "POST" });
+      const res = await apiFetch("/api/whatsapp/cron/trigger", { method: "POST" });
       const json = await res.json();
       if (json.success) {
         const d = json.data;

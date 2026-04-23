@@ -1,5 +1,7 @@
 "use client";
 
+import { apiFetch } from "@/lib/api/client-fetch";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -15,7 +17,7 @@ export default function NewMemberPage() {
   const handleSubmit = async (data: CreateMemberInput & { photoUrl?: string }) => {
     setLoading(true);
     try {
-      const res = await fetch("/api/members", {
+      const res = await apiFetch("/api/members", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
