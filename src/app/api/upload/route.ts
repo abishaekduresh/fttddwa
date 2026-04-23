@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
       height = 1080;
       subDir = "branding";
     } else if (type === "signatures") {
-      width = 771;
-      height = 600;
+      width = 650;
+      height = 300;
       subDir = "signatures";
     }
 

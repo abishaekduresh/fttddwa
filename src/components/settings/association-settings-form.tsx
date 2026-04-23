@@ -167,8 +167,8 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
       return;
     }
 
-    if (dims.width < 150 || dims.height < 50) {
-      toast.error("Signature resolution too low. Minimum 150x50px required for quality.");
+    if (dims.width < 650 || dims.height < 300) {
+      toast.error("Signature resolution too low. Minimum 650x300px required for high quality.");
       return;
     }
 
@@ -541,7 +541,7 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
             </div>
             <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
               <p className="text-xs text-amber-700 leading-relaxed">
-                <strong>Tip:</strong> For best results, use horizontal signature images. The system will automatically optimize them to **771 × 600px**. Use a transparent background (PNG) for a professional look on ID cards.
+                <strong>Tip:</strong> For best results, use images with a transparent background (PNG) or a clean white background. Signatures should be horizontal and well-lit.
               </p>
             </div>
           </div>
