@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 
 interface MemberDetail {
   id: number;
+  uuid: string;
   membershipId: string;
   name: string;
   nameTamil?: string;
@@ -164,10 +165,10 @@ export default function MemberDetailPage() {
           Back to Members
         </Link>
         <button
-          onClick={() => window.print()}
+          onClick={() => window.open(`/api/members/card/${member.uuid}/pdf`, "_blank")}
           className="btn btn-outline text-sm py-1.5"
         >
-          <Printer size={14} /> Print
+          <Printer size={14} /> Print ID Card
         </button>
       </div>
 

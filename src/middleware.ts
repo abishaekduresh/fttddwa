@@ -7,6 +7,7 @@ const PUBLIC_PATHS = [
   "/login",
   "/forgot-password",
   "/members/register",
+  "/members/id-card",
   "/api/auth/login",
   "/api/auth/refresh",
   "/api/auth/logout",  // Must be public — user may have an expired access token when logging out
@@ -16,12 +17,14 @@ const PUBLIC_PATHS = [
   "/api/whatsapp/webhook",
   "/api/members/register",
   "/api/members/register/upload",
+  "/api/members/card",
   "/api/whatsapp/cron/trigger",
 ];
 
 // Exact-matched public paths (only the exact URL is public, sub-paths are protected)
 const PUBLIC_EXACT_PATHS = [
   "/api/settings/app",
+  "/api/settings/association",  // GET is unauthenticated (branding data for login/public pages); POST has its own auth check
 ];
 
 const AUTH_API_PATHS = ["/api/auth/login", "/api/auth/refresh"];

@@ -1,8 +1,17 @@
 import sanitizeHtml from "sanitize-html";
 
 // Strip all HTML tags — allow only plain text
-export function sanitizeText(input: string): string {
-  return sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} }).trim();
+export function sanitizeText(input: string | null | undefined): string {
+  if (!input) return "";
+  const sanitized = sanitizeHtml(input, { allowedTags: [], allowedAttributes: {} }).trim();
+
+  // Unescape common HTML entities that sanitize-html escapes
+  return sanitized
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
 }
 
 export function sanitizeObject<T extends Record<string, unknown>>(obj: T): T {

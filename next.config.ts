@@ -40,6 +40,10 @@ const nextConfig: NextConfig = {
         source: "/uploads/:path*",
         destination: "/api/files/:path*",
       },
+      {
+        source: "/members/id-card/:token.pdf",
+        destination: "/members/id-card/pdf/:token",
+      },
     ];
   },
   serverExternalPackages: ["pdfkit", "sharp"],

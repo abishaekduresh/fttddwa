@@ -6,6 +6,46 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [1.6.1] — 2026-04-24
+
+### Added
+- **Secure Proxied PDF URL** — Implemented a clean, proxied URL at `/members/id-card/[token].pdf`. This hides the internal API path and provides a more professional appearance for shared links.
+- **Dashboard "Print ID Card"** — The admin member details page now includes a dedicated "Print ID Card" button that opens the member's generated PDF in a new browser tab.
+- **Premium Error UI** — Completely redesigned the "Link Expired" page with a modern, mobile-responsive interface, improved typography, and clear visual indicators.
+
+### Changed
+- **Direct PDF Flow** — Public ID card lookup now automatically redirects to the generated PDF upon successful verification, removing the intermediate preview step for a faster user experience.
+- **One-Time Access Enforcement** — PDF tokens are strictly single-use and valid for only 10 minutes, ensuring high security for member data access.
+- **HTML Sanitization** — Updated the text sanitization utility to prevent double-escaping of HTML entities (e.g., `&` being saved as `&amp;`), ensuring data is stored in its literal form while maintaining XSS protection.
+
+### Fixed
+- **Lookup API Import Error** — Fixed a `TypeError` in the ID card lookup route caused by an incorrect import of the `badRequest` utility.
+
+---
+
+## [1.6.0] — 2026-04-23
+
+### Added
+- **Member UUID** — Each member now receives a UUID (v4) generated automatically at creation time. Stored as a unique, indexed `uuid` VARCHAR(36) column on the `members` table. Provides a stable, opaque public identifier that does not expose the internal integer ID.
+- **Public Member ID Card** — New public page at `/members/id-card`: members enter their phone number or Membership ID to look up their UUID, then are redirected to `/members/id-card/[uuid]` which renders a fully customized digital ID card.
+- **ID Card Feature Toggle** — `enableIdCard` boolean in `association_settings`. Admins can enable/disable the public ID card page from the App Settings tab in `/settings`. Disabled state shows a friendly "unavailable" screen on both the lookup and card pages.
+- **ID Card Customization** — New "ID Card Customization" section in the App Settings tab. Configurable: header/background/text colors, card title, and per-field visibility toggles (photo, membership ID, phone, email, address, DOB, business name, position, member-since date).
+- **Print / Save PDF** — "Print / Save PDF" button on the ID card page uses `window.print()` with a print-scoped CSS that renders only the card. Works in all modern browsers; Chrome's "Save as PDF" printer produces a pixel-perfect PDF of the customized card design.
+- **Public ID Card API** — Two new public endpoints:
+  - `GET /api/members/card/lookup?q=<phone_or_membershipId>` — returns `uuid` only (no PII); rate-limited 10 req/min per IP
+  - `GET /api/members/card/[uuid]` — returns card data + association branding + idCardSettings; rate-limited 30 req/min per IP
+
+### Changed
+- **`/api/settings/app` (GET)** — Now also returns `enableIdCard` and `idCardSettings`.
+- **`/api/settings/app/update` (PATCH)** — Now accepts `enableIdCard` (boolean) and `idCardSettings` (object) in addition to `enableMemberRegistration`. Any subset of the three fields can be patched in a single request.
+- **Middleware** — Added `/members/id-card` and `/api/members/card` to `PUBLIC_PATHS`.
+
+### Database
+- `members` table: add `uuid VARCHAR(36) NOT NULL UNIQUE` column with index (run `npm run db:migrate`).
+- `association_settings` table: add `enableIdCard BOOLEAN NOT NULL DEFAULT TRUE` and `idCardSettings JSON NULL` columns.
+
+---
+
 ## [1.5.2] — 2026-04-23
 
 ### Added
@@ -248,6 +288,8 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.6.1 | 2026-04-24 | Direct PDF redirect, proxied URLs, modern error pages, sanitization fix |
+| 1.6.0 | 2026-04-23 | Member UUID, public ID card page, ID card customization, Print/PDF export |
 | 1.5.2 | 2026-04-23 | Session expiry redirect with toast across all dashboard pages |
 | 1.5.1 | 2026-04-23 | WhatsApp cron Run-Now fix, remove internal scheduler, remove Scheduler UI |
 | 1.5.0 | 2026-04-22 | Auth hardening, zero-DB /me, batched queries, idle refresh, multi-tab debounce |

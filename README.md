@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 1.5.2** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
+> **Version 1.6.1** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
 
 ---
 
@@ -15,6 +15,7 @@
 - **Membership ID Generation** — Auto-generated IDs in format `FTTD{YY}{NNNNN}` (e.g. `FTTD260001`)
 - **Wedding Date Tracking** — Record and display anniversary dates for all members
 - **Public Self-Registration** — Members can register at `/members/register` (toggleable by admin); submitted records are created as `INACTIVE` pending approval
+- **Member ID Card** — Public digital ID card system. Members look up by phone or Membership ID and are securely redirected to a one-time viewable PDF via a proxied URL (`/members/id-card/:token.pdf`). Card design is fully customizable from the admin panel.
 - **WhatsApp Module** — Automated + Manual messaging with multi-vendor support, fallback logic, and real-time status tracking; cron triggered via admin UI or external HTTP call (no worker required)
 - **Membership Analytics** — Dashboard stats for membership growth and WhatsApp credit consumption
 - **Photo Upload** — Secure passport-size photo upload with type + size validation (stored in Vercel Blob)
@@ -320,8 +321,10 @@ Interactive Swagger UI: [http://localhost:3000/api/docs](http://localhost:3000/a
 | `GET` | `/api/dashboard/stats` | Dashboard stats |
 | `POST` | `/api/members/register` | Public member self-registration |
 | `POST` | `/api/upload` | Upload photo (→ Vercel Blob) |
-| `GET` | `/api/settings/app` | Public app settings (registration flag, branding) |
+| `GET` | `/api/settings/app` | Public app settings (registration flag, id card flag, branding) |
 | `PATCH` | `/api/settings/app/update` | Update app settings (Admin+) |
+| `GET` | `/api/members/card/lookup` | Public — look up member UUID by phone or Membership ID |
+| `GET` | `/api/members/card/:uuid` | Public — fetch member card data by UUID |
 | `GET` | `/api/whatsapp/logs` | List message logs |
 | `GET` | `/api/whatsapp/stats/usage` | Credit usage stats |
 | `POST` | `/api/whatsapp/send` | Manual message send |

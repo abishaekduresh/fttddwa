@@ -8,6 +8,140 @@ import { Eye, EyeOff, Loader2, Lock, User, Building2, SlidersHorizontal } from "
 import toast from "react-hot-toast";
 import { AssociationSettingsForm } from "@/components/settings/association-settings-form";
 
+interface IdCardSettingsValues {
+  primaryColor: string;
+  secondaryColor: string;
+  headerTextColor: string;
+  cardTitle: string;
+  showPhoto: boolean;
+  showMembershipId: boolean;
+  showPhone: boolean;
+  showEmail: boolean;
+  showAddress: boolean;
+  showDateOfBirth: boolean;
+  showBusinessName: boolean;
+  showPosition: boolean;
+  showJoinedAt: boolean;
+}
+
+const ID_CARD_DEFAULTS: IdCardSettingsValues = {
+  primaryColor: "#1e40af",
+  secondaryColor: "#ffffff",
+  headerTextColor: "#ffffff",
+  cardTitle: "Member ID Card",
+  showPhoto: true,
+  showMembershipId: true,
+  showPhone: true,
+  showEmail: false,
+  showAddress: true,
+  showDateOfBirth: false,
+  showBusinessName: true,
+  showPosition: true,
+  showJoinedAt: true,
+};
+
+function IdCardCustomizer({
+  settings,
+  saving,
+  onSave,
+}: {
+  settings: Partial<IdCardSettingsValues> | null;
+  saving: boolean;
+  onSave: (s: IdCardSettingsValues) => void;
+}) {
+  const [vals, setVals] = useState<IdCardSettingsValues>({ ...ID_CARD_DEFAULTS, ...(settings ?? {}) });
+
+  const toggle = (key: keyof IdCardSettingsValues) =>
+    setVals((v) => ({ ...v, [key]: !v[key] }));
+  const set = (key: keyof IdCardSettingsValues, value: string) =>
+    setVals((v) => ({ ...v, [key]: value }));
+
+  const FIELD_TOGGLES: { key: keyof IdCardSettingsValues; label: string }[] = [
+    { key: "showPhoto",        label: "Photo" },
+    { key: "showMembershipId", label: "Membership ID" },
+    { key: "showPhone",        label: "Phone number" },
+    { key: "showEmail",        label: "Email address" },
+    { key: "showAddress",      label: "District / Address" },
+    { key: "showDateOfBirth",  label: "Date of birth" },
+    { key: "showBusinessName", label: "Business name" },
+    { key: "showPosition",     label: "Position / Role" },
+    { key: "showJoinedAt",     label: "Member since date" },
+  ];
+
+  return (
+    <div className="card p-6 space-y-5">
+      <div>
+        <h2 className="font-semibold text-slate-900">ID Card Customization</h2>
+        <p className="text-xs text-slate-500">Configure the appearance of the public member ID card.</p>
+      </div>
+
+      {/* Colors */}
+      <div className="grid grid-cols-3 gap-4">
+        {([ ["primaryColor", "Header Color"], ["secondaryColor", "Card Background"], ["headerTextColor", "Header Text"] ] as [keyof IdCardSettingsValues, string][]).map(([key, label]) => (
+          <div key={key}>
+            <label className="block text-xs font-medium text-slate-700 mb-1.5">{label}</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={vals[key] as string}
+                onChange={(e) => set(key, e.target.value)}
+                className="h-8 w-10 cursor-pointer rounded border border-slate-200 p-0.5"
+              />
+              <input
+                type="text"
+                value={vals[key] as string}
+                onChange={(e) => set(key, e.target.value)}
+                className="flex-1 text-xs font-mono form-input py-1.5 px-2"
+                maxLength={7}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Card title */}
+      <div>
+        <label className="form-label text-xs">Card Title</label>
+        <input
+          type="text"
+          value={vals.cardTitle}
+          onChange={(e) => set("cardTitle", e.target.value)}
+          className="form-input"
+          maxLength={60}
+          placeholder="Member ID Card"
+        />
+      </div>
+
+      {/* Field visibility toggles */}
+      <div>
+        <p className="text-xs font-medium text-slate-700 mb-2">Visible Fields</p>
+        <div className="grid grid-cols-2 gap-2">
+          {FIELD_TOGGLES.map(({ key, label }) => (
+            <label key={key} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={vals[key] as boolean}
+                onChange={() => toggle(key)}
+                className="rounded border-slate-300 text-primary focus:ring-primary"
+              />
+              <span className="text-sm text-slate-700">{label}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onSave(vals)}
+        disabled={saving}
+        className="btn btn-primary w-full"
+      >
+        {saving ? <><Loader2 size={14} className="animate-spin" /> Saving...</> : "Save ID Card Settings"}
+      </button>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user, hasPermission } = useAuthStore();
   const [tab, setTab] = useState<"profile" | "security" | "association" | "app">("profile");
@@ -18,8 +152,13 @@ export default function SettingsPage() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [assocSettings, setAssocSettings] = useState<any>(null);
   const [loadingAssoc, setLoadingAssoc] = useState(false);
-  const [appSettings, setAppSettings] = useState<{ enableMemberRegistration: boolean } | null>(null);
+  const [appSettings, setAppSettings] = useState<{
+    enableMemberRegistration: boolean;
+    enableIdCard: boolean;
+    idCardSettings: Record<string, unknown> | null;
+  } | null>(null);
   const [savingApp, setSavingApp] = useState(false);
+  const [savingIdCard, setSavingIdCard] = useState(false);
 
   const canManageAssoc = hasPermission("association:manage");
   const canManageApp = hasPermission("app_settings:manage") || user?.role === "SUPER_ADMIN";
@@ -34,7 +173,15 @@ export default function SettingsPage() {
     if (canManageApp && tab === "app" && !appSettings) {
       fetch("/api/settings/app")
         .then((r) => r.json())
-        .then((j) => { if (j.success) setAppSettings(j.data); })
+        .then((j) => {
+          if (j.success) {
+            setAppSettings({
+              enableMemberRegistration: j.data.enableMemberRegistration ?? true,
+              enableIdCard: j.data.enableIdCard ?? true,
+              idCardSettings: j.data.idCardSettings ?? null,
+            });
+          }
+        })
         .catch(() => toast.error("Failed to load app settings"));
     }
   }, [tab, canManageApp, appSettings]);
@@ -58,6 +205,28 @@ export default function SettingsPage() {
       toast.error("Network error");
     } finally {
       setSavingApp(false);
+    }
+  };
+
+  const handleSaveIdCardSettings = async (patch: Record<string, unknown>) => {
+    setSavingIdCard(true);
+    try {
+      const res = await apiFetch("/api/settings/app/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAppSettings((prev) => prev ? { ...prev, ...patch } : prev);
+        toast.success("ID card settings saved");
+      } else {
+        toast.error(json.message || "Failed to save");
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setSavingIdCard(false);
     }
   };
 
@@ -223,46 +392,75 @@ export default function SettingsPage() {
       )}
 
       {tab === "app" && (
-        <div className="card p-6 animate-in fade-in duration-300 space-y-4">
-          <div>
-            <h2 className="font-semibold text-slate-900">App Settings</h2>
-            <p className="text-xs text-slate-500">Control which features are publicly accessible.</p>
+        <div className="space-y-4 animate-in fade-in duration-300">
+          <div className="card p-6">
+            <div className="mb-4">
+              <h2 className="font-semibold text-slate-900">App Settings</h2>
+              <p className="text-xs text-slate-500">Control which features are publicly accessible.</p>
+            </div>
+
+            {!appSettings ? (
+              <div className="flex items-center justify-center py-10">
+                <Loader2 size={20} className="animate-spin text-slate-400" />
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {/* Member Registration toggle */}
+                <div className="flex items-start justify-between py-4 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Public Member Registration</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Allow anyone to self-register at{" "}
+                      <span className="font-mono text-slate-600">/members/register</span>.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={savingApp}
+                    onClick={() => handleToggleAppSetting("enableMemberRegistration", !appSettings.enableMemberRegistration)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                      appSettings.enableMemberRegistration ? "bg-primary" : "bg-slate-300"
+                    }`}
+                    role="switch"
+                    aria-checked={appSettings.enableMemberRegistration}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ${appSettings.enableMemberRegistration ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </div>
+
+                {/* ID Card toggle */}
+                <div className="flex items-start justify-between py-4 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Public Member ID Card</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Allow members to view their ID card at{" "}
+                      <span className="font-mono text-slate-600">/members/id-card</span>.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={savingApp}
+                    onClick={() => handleToggleAppSetting("enableIdCard", !appSettings.enableIdCard)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                      appSettings.enableIdCard ? "bg-primary" : "bg-slate-300"
+                    }`}
+                    role="switch"
+                    aria-checked={appSettings.enableIdCard}
+                  >
+                    <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ${appSettings.enableIdCard ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {!appSettings ? (
-            <div className="flex items-center justify-center py-10">
-              <Loader2 size={20} className="animate-spin text-slate-400" />
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {/* Member Registration toggle */}
-              <div className="flex items-start justify-between py-4 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-slate-900">Public Member Registration</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Allow anyone to self-register at{" "}
-                    <span className="font-mono text-slate-600">/members/register</span>.
-                    Disable to prevent new self-registrations.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  disabled={savingApp}
-                  onClick={() => handleToggleAppSetting("enableMemberRegistration", !appSettings.enableMemberRegistration)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-                    appSettings.enableMemberRegistration ? "bg-primary" : "bg-slate-300"
-                  }`}
-                  role="switch"
-                  aria-checked={appSettings.enableMemberRegistration}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ${
-                      appSettings.enableMemberRegistration ? "translate-x-5" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
+          {/* ID Card Customization */}
+          {appSettings && (
+            <IdCardCustomizer
+              settings={appSettings.idCardSettings as any}
+              saving={savingIdCard}
+              onSave={(s) => handleSaveIdCardSettings({ idCardSettings: s })}
+            />
           )}
         </div>
       )}

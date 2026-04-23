@@ -22,15 +22,35 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { enableMemberRegistration } = body;
+    const { enableMemberRegistration, enableIdCard, idCardSettings } = body;
 
-    if (typeof enableMemberRegistration !== "boolean") {
-      return forbidden("Invalid value for enableMemberRegistration");
+    const updates: Record<string, unknown> = {};
+
+    if (typeof enableMemberRegistration === "boolean") {
+      updates.enableMemberRegistration = enableMemberRegistration;
+      await prisma.$executeRaw`
+        UPDATE association_settings SET enableMemberRegistration = ${enableMemberRegistration} WHERE id = 1
+      `;
     }
 
-    await prisma.$executeRaw`
-      UPDATE association_settings SET enableMemberRegistration = ${enableMemberRegistration} WHERE id = 1
-    `;
+    if (typeof enableIdCard === "boolean") {
+      updates.enableIdCard = enableIdCard;
+      await prisma.$executeRaw`
+        UPDATE association_settings SET enableIdCard = ${enableIdCard} WHERE id = 1
+      `;
+    }
+
+    if (idCardSettings !== undefined) {
+      const settingsJson = JSON.stringify(idCardSettings);
+      updates.idCardSettings = idCardSettings;
+      await prisma.$executeRaw`
+        UPDATE association_settings SET idCardSettings = ${settingsJson} WHERE id = 1
+      `;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return forbidden("No valid fields provided");
+    }
 
     const userId = req.headers.get("x-user-id");
     await createAuditLog({
@@ -39,11 +59,11 @@ export async function PATCH(req: NextRequest) {
       action: "UPDATE",
       resource: "app_settings",
       resourceId: "1",
-      newValues: { enableMemberRegistration },
+      newValues: updates,
       ipAddress: getClientIp(req),
     });
 
-    return ok({ enableMemberRegistration }, "App settings updated");
+    return ok(updates, "App settings updated");
   } catch (err) {
     console.error("PATCH /api/settings/app/update error:", err);
     return serverError();

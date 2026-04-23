@@ -93,6 +93,7 @@ model Session {
 
 model Member {
   id                Int          @id @default(autoincrement())
+  uuid              String       @unique @db.VarChar(36)
   membershipId      String       @unique @db.VarChar(20)
   name              String       @db.VarChar(200)
   nameTamil         String?      @db.VarChar(200)
@@ -125,6 +126,7 @@ model Member {
   updatedBy         User?        @relation("UpdatedBy", fields: [updatedById], references: [id])
   whatsappLogs      WhatsappLog[]
 
+  @@index([uuid])
   @@index([district])
   @@index([taluk])
   @@index([status])
@@ -174,6 +176,8 @@ model AssociationSetting {
   email                    String?  @db.VarChar(255)
   phone                    String?  @db.VarChar(20)
   enableMemberRegistration Boolean  @default(true)
+  enableIdCard             Boolean  @default(true)
+  idCardSettings           Json?
   updatedAt                DateTime @updatedAt
 
   @@map("association_settings")

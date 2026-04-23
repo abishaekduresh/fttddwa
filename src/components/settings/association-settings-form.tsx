@@ -2,7 +2,7 @@
 
 import { apiFetch } from "@/lib/api/client-fetch";
 
-import { useForm } from "react-hook-form";
+import { useForm, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Save, Upload, Building2, Palette, Phone, Wand2, ExternalLink } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -101,6 +101,24 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
     }
   };
 
+  const onValidationError = (errs: FieldErrors<AssociationSettingsInput>) => {
+    // Required fields live in the "basic" tab — switch there and tell the user
+    const basicFields = ["name", "shortName"] as const;
+    const hasBasicError = basicFields.some((f) => f in errs);
+    if (hasBasicError) {
+      setTab("basic");
+      toast.error("Please fill in the required fields: Association Name and Short Name.");
+      return;
+    }
+    // Email is in the "contact" tab
+    if ("email" in errs) {
+      setTab("contact");
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    toast.error("Please fix the validation errors before saving.");
+  };
+
   const onSubmit = async (data: AssociationSettingsInput) => {
     setLoading(true);
     try {
@@ -148,7 +166,7 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
         ))}
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit, onValidationError)} className="space-y-6">
         {tab === "basic" && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div>
@@ -163,7 +181,7 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
                   Auto-generate Tamil
                 </button>
               </div>
-              <input type="text" className="form-input" {...register("name")} placeholder="Full Name in English" />
+              <input type="text" className={`form-input ${errors.name ? "form-input-error" : ""}`} {...register("name")} placeholder="Full Name in English" />
               {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
             </div>
             <div>
@@ -187,7 +205,7 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
                   Auto-generate Tamil
                 </button>
               </div>
-              <input type="text" className="form-input" {...register("shortName")} placeholder="e.g. FTTDDWA" />
+              <input type="text" className={`form-input ${errors.shortName ? "form-input-error" : ""}`} {...register("shortName")} placeholder="e.g. FTTDDWA" />
               {errors.shortName && <p className="text-red-600 text-xs mt-1">{errors.shortName.message}</p>}
             </div>
             <div>

@@ -4,7 +4,7 @@ import { associationSettingsSchema } from "@/lib/validation/association.schema";
 import { ok, forbidden, serverError, error } from "@/lib/api/response";
 import { createAuditLog } from "@/lib/services/audit.service";
 import { getClientIp } from "@/lib/security/rate-limiter";
-import { prisma } from "@/lib/prisma";
+import { verifyAccessToken } from "@/lib/jwt";
 
 export async function GET() {
   try {
@@ -18,20 +18,17 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const roleId = req.headers.get("x-user-role-id");
-    if (!roleId) return forbidden("Unauthorized");
+    // Manual auth: this route is in PUBLIC_EXACT_PATHS (so GET works without a token),
+    // meaning middleware does NOT inject x-user-* headers. Verify token from cookie directly.
+    const token = req.cookies.get("access_token")?.value;
+    if (!token) return forbidden("Unauthorized");
+    const payload = await verifyAccessToken(token);
+    if (!payload) return forbidden("Unauthorized");
 
-    const roleData = await prisma.role.findUnique({
-      where: { id: parseInt(roleId) },
-      include: { permissions: { include: { permission: true } } }
-    });
-
-    const isSuperAdmin = req.headers.get("x-user-role") === "SUPER_ADMIN";
-    const hasPermission = isSuperAdmin || (roleData?.permissions as any[])?.some((p: any) => p.permission?.name === "association:manage");
-
-    if (!hasPermission) {
-      return forbidden("Insufficient permissions to manage association settings");
-    }
+    const isSuperAdmin = payload.role === "SUPER_ADMIN";
+    const permissions: string[] = payload.permissions ?? [];
+    const hasPermission = isSuperAdmin || permissions.includes("association:manage");
+    if (!hasPermission) return forbidden("Insufficient permissions to manage association settings");
 
     const body = await req.json();
     const parsed = associationSettingsSchema.safeParse(body);
@@ -40,13 +37,12 @@ export async function POST(req: NextRequest) {
       return error("Validation failed", 400, parsed.error.flatten().fieldErrors as Record<string, string[]>);
     }
 
-    const userId = req.headers.get("x-user-id");
     const oldSettings = await getAssociationSettings();
     const settings = await updateAssociationSettings(parsed.data);
 
     await createAuditLog({
-      userId: userId ? parseInt(userId) : undefined,
-      userEmail: req.headers.get("x-user-email") || undefined,
+      userId: payload.userId,
+      userEmail: payload.email,
       action: "UPDATE",
       resource: "association_settings",
       resourceId: "1",

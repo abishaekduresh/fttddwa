@@ -1,7 +1,5 @@
 "use client";
 
-import { apiFetch } from "@/lib/api/client-fetch";
-
 import { useState, useEffect } from "react";
 
 export interface AssociationSettings {
@@ -35,7 +33,7 @@ export function useAssociation() {
 
     const fetchSettings = async () => {
       try {
-        const res = await apiFetch("/api/settings/association");
+        const res = await fetch("/api/settings/association");
         const json = await res.json();
         if (json.success) {
           cachedSettings = json.data;

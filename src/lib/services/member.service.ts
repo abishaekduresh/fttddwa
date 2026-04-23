@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma, MemberStatus } from "@prisma/client";
 import { generateMembershipId } from "@/lib/utils/membership-id";
 import { sanitizeText } from "@/lib/security/sanitizer";
+import { generateUUID } from "@/lib/utils/uuid";
 
 /** Returns field-level errors if a P2002 unique constraint was violated, otherwise null. */
 export function parseMemberUniqueError(err: unknown): Record<string, string[]> | null {
@@ -64,8 +65,9 @@ export async function createMember(input: CreateMemberInput) {
     remark: input.remark ? sanitizeText(input.remark) : undefined,
   };
 
-  return prisma.member.create({
-    data: { ...sanitized, membershipId },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (prisma.member.create as any)({
+    data: { ...sanitized, membershipId, uuid: generateUUID() },
   });
 }
 
@@ -199,4 +201,61 @@ export async function getDistinctTaluks(district?: string): Promise<string[]> {
     orderBy: { taluk: "asc" },
   });
   return result.map((r: any) => r.taluk);
+}
+
+// ─── Public ID Card Lookups ────────────────────────────────────────────────────
+
+interface MemberCardRow {
+  uuid: string;
+  membershipId: string;
+  name: string;
+  nameTamil: string | null;
+  businessName: string | null;
+  businessNameTamil: string | null;
+  position: string | null;
+  district: string;
+  taluk: string;
+  village: string | null;
+  state: string;
+  phone: string;
+  email: string | null;
+  photoUrl: string | null;
+  status: string;
+  dateOfBirth: Date | null;
+  weddingDate: Date | null;
+  joinedAt: Date;
+}
+
+/**
+ * Look up a member's UUID by BOTH membershipId AND phone — both must match the same ACTIVE member.
+ * Requiring two factors prevents casual enumeration.
+ */
+export async function lookupMemberByBothFields(memberId: string, phone: string): Promise<string | null> {
+  const rows = await prisma.$queryRaw<{ uuid: string }[]>`
+    SELECT uuid FROM members
+    WHERE status = 'ACTIVE'
+      AND deletedAt IS NULL
+      AND membershipId = ${memberId.trim().toUpperCase()}
+      AND phone = ${phone.trim()}
+    LIMIT 1
+  `;
+  return rows[0]?.uuid ?? null;
+}
+
+/** Fetch member card data by UUID. Returns public fields only — no aadhaarHash or internal IDs. */
+export async function getMemberCardByUuid(uuid: string): Promise<MemberCardRow | null> {
+  const rows = await prisma.$queryRaw<MemberCardRow[]>`
+    SELECT
+      uuid, membershipId, name, nameTamil,
+      businessName, businessNameTamil, position,
+      district, taluk, village, state,
+      phone, email, photoUrl, status,
+      dateOfBirth, weddingDate, joinedAt
+    FROM members
+    WHERE uuid = ${uuid}
+      AND status = 'ACTIVE'
+      AND deletedAt IS NULL
+    LIMIT 1
+  `;
+  return rows[0] ?? null;
 }
