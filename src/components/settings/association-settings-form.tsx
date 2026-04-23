@@ -369,29 +369,48 @@ export function AssociationSettingsForm({ initialData }: AssociationSettingsForm
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="form-label mb-0">Tagline (English)</label>
-                  <button 
-                    type="button" 
-                    onClick={() => handleTranslate("tagline", "taglineTamil")}
-                    className="text-[10px] flex items-center gap-1 text-primary hover:underline"
-                  >
-                    {translatingField === "taglineTamil" ? <Loader2 size={10} className="animate-spin" /> : <Wand2 size={10} />}
-                    Auto-generate Tamil
-                  </button>
+            </div>
+
+            {/* ID Card Customization Section */}
+            <div className="pt-6 border-t border-slate-200">
+              <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                <Wand2 size={16} className="text-primary" />
+                ID Card Customization
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="form-label">ID Card Primary Color</label>
+                  <div className="flex gap-2">
+                    <input type="color" className="w-10 h-10 p-0.5 rounded border border-slate-200 cursor-pointer" {...register("idCardSettings.primaryColor")} />
+                    <input type="text" className="form-input flex-1 font-mono text-sm" {...register("idCardSettings.primaryColor")} placeholder="#1e293b" />
+                  </div>
                 </div>
-                <input type="text" className="form-input" {...register("tagline")} placeholder="e.g. Serving Tent Dealers since 1990" />
+                <div>
+                  <label className="form-label">Card Title (e.g. Member ID Card)</label>
+                  <input type="text" className="form-input" {...register("idCardSettings.cardTitle")} placeholder="MEMBER ID CARD" />
+                </div>
+                <div>
+                  <label className="form-label">Footer Title (e.g. State Chairman)</label>
+                  <input type="text" className="form-input" {...register("idCardSettings.footerTitle")} placeholder="STATE CHAIRMAN" />
+                </div>
               </div>
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="form-label mb-0">Tagline (Tamil)</label>
-                  <a href="https://www.google.com/intl/en/inputtools/try/" target="_blank" className="text-[10px] flex items-center gap-1 text-slate-400 hover:text-slate-600">
-                    <ExternalLink size={10} /> Google Input Tools
-                  </a>
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="showPhoto" className="rounded text-primary" {...register("idCardSettings.showPhoto")} />
+                  <label htmlFor="showPhoto" className="text-xs font-medium text-slate-600 cursor-pointer">Show Photo</label>
                 </div>
-                <input type="text" className="form-input tamil" dir="auto" {...register("taglineTamil")} placeholder="முழக்கம் / குறிக்கோள்" />
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="showMembershipId" className="rounded text-primary" {...register("idCardSettings.showMembershipId")} />
+                  <label htmlFor="showMembershipId" className="text-xs font-medium text-slate-600 cursor-pointer">Show ID No</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="showPhone" className="rounded text-primary" {...register("idCardSettings.showPhone")} />
+                  <label htmlFor="showPhone" className="text-xs font-medium text-slate-600 cursor-pointer">Show Phone</label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="showBusinessName" className="rounded text-primary" {...register("idCardSettings.showBusinessName")} />
+                  <label htmlFor="showBusinessName" className="text-xs font-medium text-slate-600 cursor-pointer">Show Business</label>
+                </div>
               </div>
             </div>
           </div>

@@ -68,6 +68,8 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
 
   const s = {
     primaryColor:     (cs.primaryColor    as string) || "#1e293b", // Default to Slate-800
+    cardTitle:        (cs.cardTitle       as string) || "MEMBER ID CARD",
+    footerTitle:      (cs.footerTitle     as string) || "STATE CHAIRMAN",
     showPhoto:        (cs.showPhoto        as boolean) ?? true,
     showMembershipId: (cs.showMembershipId as boolean) ?? true,
     showPhone:        (cs.showPhone        as boolean) ?? true,
@@ -91,7 +93,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
   const W = 260, H = 410; // Portrait orientation
   const doc = new PDFDocument({
     size: [W, H], margin: 0,
-    info: { Title: `${memberRow.membershipId} — Member ID Card`, Author: setting?.name || "Association" },
+    info: { Title: `${memberRow.membershipId} — ${s.cardTitle}`, Author: setting?.name || "Association" },
   });
 
   const chunks: Buffer[] = [];
@@ -211,20 +213,20 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
   // Signature placement
   if (sigBuf) {
     try {
-      const SIG_W = 70;
-      doc.image(sigBuf, W - SIG_W - 20, FOOTER_Y - 45, { width: SIG_W, height: 30, fit: [SIG_W, 30] });
+      const SIG_W = 75;
+      doc.image(sigBuf, W - SIG_W - 20, FOOTER_Y - 45, { width: SIG_W, height: 35, fit: [SIG_W, 35] });
     } catch {}
   }
   
-  // Signature text/name above the bar
-  doc.fillColor(COLOR_PINK).font("Helvetica-Oblique").fontSize(9)
-     .text(memberRow.name, W - 115, FOOTER_Y - 12, { width: 100, align: "center" });
+  // Footer Title above the bar (Corporate Style)
+  doc.fillColor(COLOR_PINK).font("Helvetica-Bold").fontSize(9)
+     .text(s.footerTitle.toUpperCase(), W - 115, FOOTER_Y - 12, { width: 100, align: "center" });
 
   // Bottom Bar
   doc.rect(0, FOOTER_Y, W, FOOTER_H).fill("#16a34a"); // Success-600 Green
   
   doc.fillColor(COLOR_WHITE).font("Helvetica-Bold").fontSize(10)
-     .text("STATE CHAIRMAN", 0, FOOTER_Y + 16, { width: W, align: "center" });
+     .text(s.footerTitle.toUpperCase(), 0, FOOTER_Y + 16, { width: W, align: "center" });
 
   doc.end();
   await pdfDone;

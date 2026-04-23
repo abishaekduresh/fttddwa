@@ -22,6 +22,7 @@ export const associationSettingsSchema = z.object({
   sigSecretaryUrl: z.string().optional().nullable().or(z.literal("")),
   sigJointSecretaryUrl: z.string().optional().nullable().or(z.literal("")),
   sigTreasurerUrl: z.string().optional().nullable().or(z.literal("")),
+  idCardSettings: z.any().optional(),
 });
 
 export type AssociationSettingsInput = z.infer<typeof associationSettingsSchema>;
