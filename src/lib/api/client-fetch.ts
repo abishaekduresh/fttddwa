@@ -28,8 +28,9 @@ function expireSession() {
     })
     .catch(() => {});
 
+  const next = encodeURIComponent(window.location.pathname + window.location.search);
   setTimeout(() => {
-    window.location.href = "/login";
+    window.location.href = `/login?next=${next}`;
   }, 1500);
 }
 

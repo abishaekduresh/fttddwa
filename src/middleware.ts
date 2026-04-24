@@ -56,13 +56,17 @@ export async function middleware(req: NextRequest) {
     }
   }
 
-  // Auth pages: redirect to dashboard if a valid access_token already exists
+  // Auth pages: redirect to ?next (or dashboard) if a valid session already exists
   if (pathname === "/login" || pathname === "/forgot-password") {
     const token = req.cookies.get("access_token")?.value;
     if (token) {
       const payload = await verifyAccessToken(token);
       if (payload) {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        const next = req.nextUrl.searchParams.get("next");
+        const destination = (next && next.startsWith("/") && !next.startsWith("//"))
+          ? next
+          : "/dashboard";
+        return NextResponse.redirect(new URL(destination, req.url));
       }
     }
     return NextResponse.next();
@@ -82,7 +86,10 @@ export async function middleware(req: NextRequest) {
   if (!pathname.startsWith("/api/")) {
     const token = req.cookies.get("access_token")?.value;
     if (!token) {
-      return NextResponse.redirect(new URL("/login", req.url));
+      const loginUrl = new URL("/login", req.url);
+      const next = pathname + req.nextUrl.search;
+      if (next && next !== "/") loginUrl.searchParams.set("next", next);
+      return NextResponse.redirect(loginUrl);
     }
 
     const payload = await verifyAccessToken(token);

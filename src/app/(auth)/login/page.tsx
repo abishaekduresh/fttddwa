@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, LogIn, Loader2, UserPlus, Timer, CreditCard } from "lucide-react";
@@ -12,8 +12,18 @@ import toast from "react-hot-toast";
 
 import { useAssociation } from "@/hooks/use-association";
 
-export default function LoginPage() {
+// Validates that a redirect target is a safe internal path
+function safeNext(next: string | null): string {
+  if (!next) return "/dashboard";
+  // Prevent open redirects: must start with / but not // (protocol-relative)
+  if (!next.startsWith("/") || next.startsWith("//")) return "/dashboard";
+  return next;
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = safeNext(searchParams.get("next"));
   const { setUser } = useAuthStore();
   const { settings } = useAssociation();
   const [showPassword, setShowPassword] = useState(false);
@@ -56,7 +66,7 @@ export default function LoginPage() {
         if (meRes.ok) {
           const meJson = await meRes.json();
           setUser(meJson.data);
-          router.push("/dashboard");
+          router.push(nextPath);
           return;
         }
 
@@ -122,7 +132,7 @@ export default function LoginPage() {
       const meJson = await meRes.json();
       setUser(meJson.data);
       toast.success(`Welcome back, ${json.name || meJson.data.name}!`);
-      router.push("/dashboard");
+      router.push(nextPath);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Connection failed";
       toast.error(`Network error: ${msg}`);
@@ -250,5 +260,17 @@ export default function LoginPage() {
         </p>
       </div>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-[300px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

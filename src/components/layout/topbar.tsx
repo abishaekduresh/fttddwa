@@ -46,7 +46,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
     setDropdownOpen(false);
     await logout(); // clears store + calls /api/auth/logout (revokes session + deletes cookies)
     toast.success("Logged out successfully");
-    router.push("/login");
+    router.push("/");
   };
 
   const roleLabels: Record<string, string> = {

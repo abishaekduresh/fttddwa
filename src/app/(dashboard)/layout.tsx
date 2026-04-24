@@ -51,7 +51,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const redirectToLogin = (message: string) => {
       toast.error(message, { id: "session-expired", duration: 4000 });
-      setTimeout(() => router.push("/login"), 1500);
+      const next = encodeURIComponent(window.location.pathname + window.location.search);
+      setTimeout(() => router.push(`/login?next=${next}`), 1500);
     };
 
     const initAuth = async () => {
