@@ -4,14 +4,15 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 2.1.0** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
+> **Version 2.2.0** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
 
 ---
 
 ## Features
 
 ### Core
-- **Public Home Page** — Modern, mobile-responsive landing page at `/` displaying association branding (dual logos, name, Tamil name, tagline, contact details) with quick-access cards for Admin Login, Member Registration, and ID Card download. Feature cards respect `enableMemberRegistration` and `enableIdCard` flags
+- **Public Home Page** — Fully animated, mobile-responsive landing page at `/`. Hero section with floating logos, animated ambient orbs, scroll-triggered stat counters, and staggered text entrance. Quick Access cards in Tamil (விரைவு அணுகல்) with gradient icon badges, shine-sweep hover effects, and IntersectionObserver-driven card entrance animations. Contact tiles slide in on scroll. All Quick Access text is in Tamil. Feature cards respect `enableMemberRegistration` and `enableIdCard` flags
+- **Return-URL Preservation** — After session expiry or mid-session 401, users are redirected to `/login?next=<original-path>` and returned to the exact page after re-authentication. Middleware, dashboard layout, and `apiFetch` all cooperate to encode and restore the return path. Open-redirect protection ensures only internal paths are accepted
 - **Member Management** — Add, edit, delete, search, and filter members with Tamil + English name support
 - **Membership ID Generation** — Auto-generated IDs in format `FTTD{YY}{NNNNN}` (e.g. `FTTD260001`)
 - **Wedding Date Tracking** — Record and display anniversary dates for all members

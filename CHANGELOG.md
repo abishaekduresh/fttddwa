@@ -6,6 +6,31 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [2.2.0] — 2026-04-25
+
+### Added
+- **Return-URL Preservation** — Unauthenticated users are now redirected to `/login?next=<original-path>`. After login or silent session restore they are sent back to the exact page (including query string) they were trying to reach. Works across three surfaces:
+  - **Middleware** — encodes `pathname + search` into `?next=` on 401 dashboard redirects; also respects `?next=` when bypassing a valid-session login hit
+  - **Login page** — reads `?next=` via `useSearchParams`, passes through `safeNext()` guard (rejects anything not starting with `/` or starting with `//` to prevent open redirects), wrapped in `Suspense` boundary required by App Router
+  - **Dashboard layout** — `redirectToLogin()` encodes `window.location.pathname + search` into `?next=`
+  - **`apiFetch`** — `expireSession()` appends current path as `?next=` when hard-redirecting after an unrecoverable 401
+- **Logout → Home** — Signing out now redirects to `/` (home page) instead of `/login`
+
+### Changed
+- **Home Page — Full UI/UX Overhaul** — Complete visual and animation redesign:
+  - **Hero** — animated ambient orbs (`orbDrift`), CSS dot-grid texture overlay, `min-h` floor so hero never collapses; floating logo containers with pulsing shimmer rings (`logoFloat`, `ringPulse`)
+  - **Text entrance** — name, Tamil name, tagline, and reg number each fade-up sequentially with staggered delays
+  - **Animated stat counters** — numbers ease up from 0 using `requestAnimationFrame` + cubic-bezier, triggered by `IntersectionObserver`; labels now in Tamil (உறுப்பினர்கள், மாவட்டங்கள், நிறுவப்பட்டது)
+  - **Scroll indicator** — bouncing mouse-scroll hint in the hero
+  - **Cards** — gradient top-border stripe per card (blue / emerald / violet); gradient icon backgrounds; two-line titles (Tamil bold + English muted subtitle); staggered `cardIn` entrance via `IntersectionObserver`; shine-sweep `::after` pseudo-element on hover; icon box scales 110% on hover; `→` circle transitions to accent color
+  - **Live badge** — pulsing dot on "பதிவு திறந்துள்ளது" badge
+  - **Section header** — pill badge "இப்போதே தொடங்குங்கள்" with animated dot; gradient underline rule
+  - **Contact tiles** — `contactIn` slide-in animation triggered by scroll; icon inverts to solid on hover; bilingual labels (Tamil · English)
+  - **Footer** — gradient shimmer top-line; Tamil navigation links (உள்நுழைவு, பதிவு, அட்டை); Tamil copyright line
+- **Quick Access section — fully in Tamil** — All card titles, descriptions, and badges translated to Tamil with NotoSansTamil font applied consistently
+
+---
+
 ## [2.1.0] — 2026-04-25
 
 ### Added
@@ -399,6 +424,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.2.0 | 2026-04-25 | Home page animation overhaul, Tamil Quick Access, return-URL flow |
 | 2.1.0 | 2026-04-25 | Public home page with association branding and quick-access cards |
 | 2.0.0 | 2026-04-25 | Member approval workflow, status toggle, single-use PDF tokens, dual-logo headers |
 | 1.9.0 | 2026-04-24 | Dynamic stacking, multi-line row support, and missing fields fix |
@@ -418,7 +444,8 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/your-org/fttddwa/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/your-org/fttddwa/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/your-org/fttddwa/compare/v1.9.0...v2.0.0
 [1.9.0]: https://github.com/your-org/fttddwa/compare/v1.8.0...v1.9.0

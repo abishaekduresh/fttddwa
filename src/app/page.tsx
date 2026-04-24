@@ -231,7 +231,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-base font-bold text-slate-800 group-hover:text-blue-700 transition-colors">
-                      Admin Login
+                      Admin Login (நிர்வாக உள்நுழைவு)
                     </h3>
                     <p className="text-slate-500 text-sm mt-1 leading-relaxed">
                       Staff and administrators — sign in to access the member management dashboard.
@@ -257,7 +257,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">
-                        Join as Member
+                        Join as Member (உறுப்பினராக சேரவும்)
                       </h3>
                       <p className="text-slate-500 text-sm mt-1 leading-relaxed">
                         New to the association? Register your membership online — quick and easy.
@@ -284,7 +284,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-base font-bold text-slate-800 group-hover:text-violet-700 transition-colors">
-                        Get ID Card
+                        Get ID Card (அடையாள அட்டை பெறுக)
                       </h3>
                       <p className="text-slate-500 text-sm mt-1 leading-relaxed">
                         Existing member? Verify your identity and download your digital membership ID card.
