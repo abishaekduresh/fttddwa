@@ -6,6 +6,26 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [2.1.0] — 2026-04-25
+
+### Added
+- **Public Home Page** — New default route at `/` replaces the old dashboard redirect. Features:
+  - Hero section with dual-logo display (logo1 left, logo2 right), association name + Tamil name, tagline + Tamil tagline, registration number, and a stats strip (members, districts, est. year)
+  - **Quick Access cards** for Admin Login (blue), Join as Member (green), and Get ID Card (violet) — each with hover lift, shimmer animation, and inverted icon on hover
+  - Member Registration and ID Card cards are conditionally shown based on `enableMemberRegistration` and `enableIdCard` flags from `/api/settings/app`
+  - **Contact & Location section** — renders only when address, phone, email, or reg. number are set; clickable phone (`tel:`) and email (`mailto:`) links
+  - Dark footer with association name, Tamil name, and quick nav links
+  - Smooth SVG wave divider between hero and content
+  - Skeleton loading states during API fetch
+  - Fetches both `/api/settings/app` and `/api/settings/association` in parallel
+  - NotoSansTamil font applied to all Tamil text
+  - Fully mobile-responsive (1 → 2 → 3 column adaptive grid)
+
+### Changed
+- **Middleware** — Root path `/` now serves the home page instead of redirecting to `/dashboard`. Logged-in users who navigate to `/` see the home page; they are still auto-redirected to `/dashboard` when they hit `/login`.
+
+---
+
 ## [2.0.0] — 2026-04-25
 
 ### Added
@@ -379,6 +399,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.1.0 | 2026-04-25 | Public home page with association branding and quick-access cards |
 | 2.0.0 | 2026-04-25 | Member approval workflow, status toggle, single-use PDF tokens, dual-logo headers |
 | 1.9.0 | 2026-04-24 | Dynamic stacking, multi-line row support, and missing fields fix |
 | 1.8.0 | 2026-04-24 | ID card customization UI, refined footer, standardized signature resolution |
@@ -397,7 +418,8 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/your-org/fttddwa/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/your-org/fttddwa/compare/v1.9.0...v2.0.0
 [1.9.0]: https://github.com/your-org/fttddwa/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/your-org/fttddwa/compare/v1.7.0...v1.8.0

@@ -73,9 +73,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Redirect root to dashboard
+  // Home page is public
   if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    return NextResponse.next();
   }
 
   // Protect dashboard routes (non-API)
