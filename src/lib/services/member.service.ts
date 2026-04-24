@@ -216,6 +216,7 @@ interface MemberCardRow {
   district: string;
   taluk: string;
   village: string | null;
+  address: string;
   state: string;
   phone: string;
   email: string | null;
@@ -248,7 +249,7 @@ export async function getMemberCardByUuid(uuid: string): Promise<MemberCardRow |
     SELECT
       uuid, membershipId, name, nameTamil,
       businessName, businessNameTamil, position,
-      district, taluk, village, state,
+      district, taluk, village, address, state,
       phone, email, photoUrl, status,
       dateOfBirth, weddingDate, joinedAt
     FROM members

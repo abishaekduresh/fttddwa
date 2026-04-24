@@ -34,7 +34,7 @@ export async function GET(
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${uuid}-id-card.pdf"`,
-      "Cache-Control": "private, max-age=300",
+      "Cache-Control": "private, max-age=60",
     },
   });
 }

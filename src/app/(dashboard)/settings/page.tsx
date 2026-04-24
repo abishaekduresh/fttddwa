@@ -4,7 +4,8 @@ import { apiFetch } from "@/lib/api/client-fetch";
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/auth.store";
-import { Eye, EyeOff, Loader2, Lock, User, Building2, SlidersHorizontal } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, User, Building2, SlidersHorizontal, PenLine } from "lucide-react";
+import Link from "next/link";
 import toast from "react-hot-toast";
 import { AssociationSettingsForm } from "@/components/settings/association-settings-form";
 
@@ -13,14 +14,18 @@ interface IdCardSettingsValues {
   secondaryColor: string;
   headerTextColor: string;
   cardTitle: string;
+  footerTitle: string;
   showPhoto: boolean;
+  showName: boolean;
+  showNameTamil: boolean;
   showMembershipId: boolean;
+  showPosition: boolean;
   showPhone: boolean;
   showEmail: boolean;
   showAddress: boolean;
   showDateOfBirth: boolean;
   showBusinessName: boolean;
-  showPosition: boolean;
+  showBusinessNameTamil: boolean;
   showJoinedAt: boolean;
 }
 
@@ -29,14 +34,18 @@ const ID_CARD_DEFAULTS: IdCardSettingsValues = {
   secondaryColor: "#ffffff",
   headerTextColor: "#ffffff",
   cardTitle: "Member ID Card",
+  footerTitle: "STATE CHAIRMAN",
   showPhoto: true,
+  showName: true,
+  showNameTamil: false,
   showMembershipId: true,
+  showPosition: true,
   showPhone: true,
   showEmail: false,
   showAddress: true,
   showDateOfBirth: false,
   showBusinessName: true,
-  showPosition: true,
+  showBusinessNameTamil: false,
   showJoinedAt: true,
 };
 
@@ -57,22 +66,33 @@ function IdCardCustomizer({
     setVals((v) => ({ ...v, [key]: value }));
 
   const FIELD_TOGGLES: { key: keyof IdCardSettingsValues; label: string }[] = [
-    { key: "showPhoto",        label: "Photo" },
-    { key: "showMembershipId", label: "Membership ID" },
-    { key: "showPhone",        label: "Phone number" },
-    { key: "showEmail",        label: "Email address" },
-    { key: "showAddress",      label: "District / Address" },
-    { key: "showDateOfBirth",  label: "Date of birth" },
-    { key: "showBusinessName", label: "Business name" },
-    { key: "showPosition",     label: "Position / Role" },
-    { key: "showJoinedAt",     label: "Member since date" },
+    { key: "showPhoto",             label: "Photo" },
+    { key: "showName",              label: "Name (English)" },
+    { key: "showNameTamil",         label: "Name (Tamil)" },
+    { key: "showMembershipId",      label: "Membership ID" },
+    { key: "showPosition",          label: "Position / Role" },
+    { key: "showPhone",             label: "Phone number" },
+    { key: "showEmail",             label: "Email address" },
+    { key: "showAddress",           label: "District / Address" },
+    { key: "showDateOfBirth",       label: "Date of birth" },
+    { key: "showBusinessName",      label: "Business name" },
+    { key: "showBusinessNameTamil", label: "Business name (Tamil)" },
+    { key: "showJoinedAt",          label: "Member since / Validity" },
   ];
 
   return (
     <div className="card p-6 space-y-5">
-      <div>
-        <h2 className="font-semibold text-slate-900">ID Card Customization</h2>
-        <p className="text-xs text-slate-500">Configure the appearance of the public member ID card.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-semibold text-slate-900">ID Card Customization</h2>
+          <p className="text-xs text-slate-500">Configure the appearance of the public member ID card.</p>
+        </div>
+        <Link
+          href="/settings/id-card-designer"
+          className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline whitespace-nowrap flex-shrink-0"
+        >
+          <PenLine size={13} /> Open Designer
+        </Link>
       </div>
 
       {/* Colors */}
@@ -99,17 +119,30 @@ function IdCardCustomizer({
         ))}
       </div>
 
-      {/* Card title */}
-      <div>
-        <label className="form-label text-xs">Card Title</label>
-        <input
-          type="text"
-          value={vals.cardTitle}
-          onChange={(e) => set("cardTitle", e.target.value)}
-          className="form-input"
-          maxLength={60}
-          placeholder="Member ID Card"
-        />
+      {/* Card title + Footer title */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="form-label text-xs">Card Title</label>
+          <input
+            type="text"
+            value={vals.cardTitle}
+            onChange={(e) => set("cardTitle", e.target.value)}
+            className="form-input"
+            maxLength={60}
+            placeholder="Member ID Card"
+          />
+        </div>
+        <div>
+          <label className="form-label text-xs">Footer Title</label>
+          <input
+            type="text"
+            value={vals.footerTitle}
+            onChange={(e) => set("footerTitle", e.target.value)}
+            className="form-input"
+            maxLength={60}
+            placeholder="STATE CHAIRMAN"
+          />
+        </div>
       </div>
 
       {/* Field visibility toggles */}

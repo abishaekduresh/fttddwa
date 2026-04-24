@@ -43,7 +43,7 @@ export async function GET(
     const [memberRow, settingRows] = await Promise.all([
       getMemberCardByUuid(uuid),
       prisma.$queryRaw<any[]>`
-        SELECT enableIdCard, idCardSettings, name, nameTamil, shortName, logo1Url, logo2Url, tagline, regNumber
+        SELECT enableIdCard, idCardSettings, name, nameTamil, shortName, logo1Url, logo2Url, tagline, regNumber, address, addressTamil, state, phone, sigChairmanUrl
         FROM association_settings WHERE id = 1 LIMIT 1
       `,
     ]);
@@ -77,6 +77,11 @@ export async function GET(
         logo2Url: setting?.logo2Url,
         tagline: setting?.tagline,
         regNumber: setting?.regNumber,
+        address: setting?.address,
+        addressTamil: setting?.addressTamil,
+        state: setting?.state,
+        phone: setting?.phone,
+        sigChairmanUrl: setting?.sigChairmanUrl,
       },
       idCardSettings,
     });

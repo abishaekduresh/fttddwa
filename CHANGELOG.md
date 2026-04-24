@@ -6,6 +6,20 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+### [1.9.0] — 2026-04-24
+
+### Added
+- **Dynamic Vertical Stacking (Auto-Stacking)** — Implemented a smart positioning system for ID cards. Elements in the identity and data sections now automatically "move up" to fill gaps if optional fields (like Tamil Name or Business Name) are missing or hidden, ensuring a professional look without empty spaces.
+- **Multi-line Row Support** — Enhanced data rows (e.g., Address, Cell No) to support automatic text wrapping. The layout engine now dynamically calculates the height of wrapped text and adjusts subsequent elements accordingly.
+- **Member Address Field** — Added the member's residential address as a standard field in the ID card database query, PDF data mapping, and designer interface.
+
+### Fixed
+- **Missing Member Fields** — Resolved an issue where the Tamil name, business name, and member address were not correctly appearing on the generated ID cards.
+- **Designer Preview Sync** — Updated the ID Card Designer to accurately reflect the new dynamic stacking and wrapping logic in real-time.
+- **"live is not defined" Error** — Fixed a critical JavaScript error in the ID card designer caused by an incorrect variable reference in the rendering loop.
+
+---
+
 ## [1.8.0] — 2026-04-24
 
 ### Added
@@ -330,6 +344,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.9.0 | 2026-04-24 | Dynamic stacking, multi-line row support, and missing fields fix |
 | 1.8.0 | 2026-04-24 | ID card customization UI, refined footer, standardized signature resolution |
 | 1.7.0 | 2026-04-24 | Redesigned Portrait ID Card, Association Signatures Management |
 | 1.6.1 | 2026-04-24 | Direct PDF redirect, proxied URLs, modern error pages, sanitization fix |
@@ -346,7 +361,8 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/your-org/fttddwa/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/your-org/fttddwa/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/your-org/fttddwa/compare/v1.6.1...v1.7.0
 [1.6.1]: https://github.com/your-org/fttddwa/compare/v1.6.0...v1.6.1
