@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createMember, parseMemberUniqueError } from "@/lib/services/member.service";
 import { createMemberSchema } from "@/lib/validation/member.schema";
 import { created, error, serverError } from "@/lib/api/response";
+import { MemberStatus } from "@prisma/client";
 import { getClientIp } from "@/lib/security/rate-limiter";
 import { createAuditLog } from "@/lib/services/audit.service";
 import { prisma } from "@/lib/prisma";
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
       aadhaarHash: aadhaar || undefined,
       dateOfBirth: dateOfBirth && dateOfBirth !== "" ? new Date(dateOfBirth) : undefined,
       weddingDate: weddingDate && weddingDate !== "" ? new Date(weddingDate) : undefined,
+      status: MemberStatus.PENDING,  // requires admin approval before active
       // No createdById — self-registration
     });
 

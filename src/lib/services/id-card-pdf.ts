@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import path from "path";
+import QRCode from "qrcode";
 import { getMemberCardByUuid } from "@/lib/services/member.service";
 import { prisma } from "@/lib/prisma";
 import type { LayoutElement } from "@/lib/id-card-layout";
@@ -25,109 +26,186 @@ async function renderFromLayout(
     return c;
   };
 
-  const sorted = [...layout].filter(e => e.visible).sort((a, b) => a.zIndex - b.zIndex);
-  
-  // Track dynamic Y positions for stack groups
-  const groupY: Record<string, number> = {};
-  const groupLastY: Record<string, number> = {};
+  // Within the same stack group sort by y (top-to-bottom) so stacking works correctly
+  // regardless of each element's zIndex.  Elements in different groups (or no group) sort
+  // by zIndex first so visual layering is preserved.
+  const sorted = [...layout]
+    .filter(e => e.visible)
+    .sort((a, b) => {
+      if (a.stackGroup && a.stackGroup === b.stackGroup) return a.y - b.y;
+      return a.zIndex - b.zIndex || a.y - b.y;
+    });
+
+  // groupY  = actual rendered bottom of the last element in the group
+  // groupOrigBottom = original layout bottom of the last processed element (rendered or skipped)
+  // These are initialised for each group from its first element
+  const groupY:         Record<string, number> = {};
+  const groupOrigBottom: Record<string, number> = {};
+
+  const applyStack = (el: LayoutElement): number => {
+    const g = el.stackGroup!;
+    // First element in the group — render at its designed y
+    if (groupY[g] === undefined) {
+      groupY[g]          = el.y;          // will be updated after render
+      groupOrigBottom[g] = el.y;          // sentinel: treat "previous bottom" as this element's top
+      return el.y;
+    }
+    // Gap in the original design between previous element's bottom and this element's top
+    const origGap = Math.max(0, el.y - groupOrigBottom[g]);
+    // Respect optional minY floor (e.g. divider must stay below photo bottom)
+    return Math.max(el.minY ?? 0, groupY[g] + origGap);
+  };
+
+  const commitStack = (el: LayoutElement, currentY: number, renderedH: number) => {
+    const g = el.stackGroup!;
+    groupY[g]          = currentY + renderedH;
+    groupOrigBottom[g] = el.y + (el.h || renderedH);
+  };
+
+  // Separate pass: skip stacks an element by advancing origBottom only (no visual output)
+  const skipStack = (el: LayoutElement) => {
+    const g = el.stackGroup!;
+    if (groupY[g] === undefined) {
+      // First element is empty — initialise with zero height so next element starts at its designed y
+      groupY[g]          = el.y;
+      groupOrigBottom[g] = el.y + (el.h || 0);
+    } else {
+      groupOrigBottom[g] = el.y + (el.h || 0);
+    }
+  };
 
   for (const el of sorted) {
-    let currentX = el.x;
-    let currentY = el.y;
-
-    // Apply stacking if in a group
-    if (el.stackGroup) {
-      if (groupY[el.stackGroup] !== undefined) {
-        // Calculate the relative gap from the original layout
-        const prevOrigY = groupLastY[el.stackGroup] || 0;
-        const gap = Math.max(0, el.y - prevOrigY);
-        currentY = groupY[el.stackGroup] + gap;
-      }
-    }
-
     switch (el.type) {
+
       case "rect": {
+        const currentY = el.stackGroup ? applyStack(el) : el.y;
         if (el.gradient || el.bgColor === "primary" || el.bgColor === "primaryDark") {
           const base = rc(el.bgColor);
-          const g = doc.linearGradient(currentX, currentY, currentX + el.w, currentY + el.h);
+          const g = doc.linearGradient(el.x, currentY, el.x + el.w, currentY + el.h);
           g.stop(0, base).stop(1, PRIMARY_DARK);
-          doc.rect(currentX, currentY, el.w, el.h).fill(g);
+          doc.rect(el.x, currentY, el.w, el.h).fill(g);
         } else {
-          doc.rect(currentX, currentY, el.w, el.h).fill(rc(el.bgColor) || "#f0f0f0");
+          doc.rect(el.x, currentY, el.w, el.h).fill(rc(el.bgColor) || "#f0f0f0");
         }
-        if (el.stackGroup) {
-          groupY[el.stackGroup] = currentY + el.h;
-          groupLastY[el.stackGroup] = el.y + el.h;
-        }
+        if (el.stackGroup) commitStack(el, currentY, el.h);
         break;
       }
 
-      case "line":
-        doc.moveTo(currentX, currentY).lineTo(currentX + el.w, currentY)
-           .lineWidth(Math.max(el.h, 0.5)).strokeColor(el.color || "#e2e8f0").stroke();
-        if (el.stackGroup) {
-          groupY[el.stackGroup] = currentY + Math.max(el.h, 0.5);
-          groupLastY[el.stackGroup] = el.y + Math.max(el.h, 0.5);
-        }
+      case "line": {
+        const currentY = el.stackGroup ? applyStack(el) : el.y;
+        const lh = Math.max(el.h, 0.5);
+        doc.moveTo(el.x, currentY).lineTo(el.x + el.w, currentY)
+           .lineWidth(lh).strokeColor(el.color || "#e2e8f0").stroke();
+        if (el.stackGroup) commitStack(el, currentY, lh);
         break;
+      }
 
       case "text": {
         const value = el.staticText ?? data[el.field || ""] ?? "";
-        if (!value) break; // Hidden/Empty -> Don't update groupY
-        
-        doc.fillColor(rc(el.color))
-           .font(el.fontTamil ? "Tamil" : el.fontBold ? "Helvetica-Bold" : "Helvetica")
-           .fontSize(el.fontSize || 9);
-        
-        const textHeight = doc.heightOfString(value, { width: el.w, align: el.align || "left" });
-        doc.text(value, currentX, currentY, { width: el.w, align: el.align || "left" });
-
-        if (el.stackGroup) {
-          groupY[el.stackGroup] = currentY + textHeight;
-          groupLastY[el.stackGroup] = el.y + el.h; // Use original h for gap calculation
+        if (!value) {
+          if (el.stackGroup) skipStack(el);
+          break;
         }
+        const currentY = el.stackGroup ? applyStack(el) : el.y;
+        const font = el.fontTamil ? "Tamil" : el.fontBold ? "Helvetica-Bold" : "Helvetica";
+        doc.fillColor(rc(el.color)).font(font).fontSize(el.fontSize || 9);
+        const renderedH = doc.heightOfString(value, { width: el.w });
+        doc.text(value, el.x, currentY, { width: el.w, align: el.align || "left", lineGap: 1 });
+        if (el.stackGroup) commitStack(el, currentY, renderedH);
         break;
       }
 
       case "row": {
         const value = el.staticText ?? data[el.field || ""] ?? "";
-        if (!value) break;
-        const vx = el.valueX ?? (currentX + 82);
-        const vw = el.w - (vx - currentX);
-        
-        doc.fillColor(el.labelColor || "#64748b").font("Helvetica").fontSize(el.fontSize || 9)
-           .text(el.labelText || "", currentX, currentY);
-        
-        doc.fillColor(rc(el.valueColor) || "#334155").font("Helvetica-Bold").fontSize(el.fontSize || 9);
-        const valHeight = doc.heightOfString(value, { width: vw, align: "left" });
-        doc.text(value, vx, currentY, { width: vw, align: "left" });
-
-        if (el.stackGroup) {
-          groupY[el.stackGroup] = currentY + Math.max(el.h || 16, valHeight);
-          groupLastY[el.stackGroup] = el.y + (el.h || 16);
+        if (!value) {
+          if (el.stackGroup) skipStack(el);
+          break;
         }
+        const currentY = el.stackGroup ? applyStack(el) : el.y;
+        const vx  = el.valueX ?? (el.x + 82);
+        const vw  = el.w - (vx - el.x);
+        const fs  = el.fontSize || 9;
+
+        // Measure value height (may wrap)
+        const valFont = el.fontTamil ? "Tamil" : "Helvetica-Bold";
+        doc.font(valFont).fontSize(fs);
+        const valH = doc.heightOfString(value, { width: vw });
+
+        // Draw label
+        doc.fillColor(el.labelColor || "#64748b").font("Helvetica").fontSize(fs)
+           .text(el.labelText || "", el.x, currentY, { width: vx - el.x - 4, lineGap: 1 });
+        // Draw value
+        doc.fillColor(rc(el.valueColor) || "#334155").font(valFont).fontSize(fs)
+           .text(value, vx, currentY, { width: vw, align: "left", lineGap: 1 });
+
+        const renderedH = Math.max(el.h || 16, valH);
+        if (el.stackGroup) commitStack(el, currentY, renderedH);
         break;
       }
 
       case "image": {
+        const currentY = el.stackGroup ? applyStack(el) : el.y;
         const buf = images[el.field || ""];
-        if (!buf) break;
+        if (!buf) {
+          if (el.stackGroup) commitStack(el, currentY, el.h);
+          break;
+        }
         try {
           doc.save();
           if (el.shape === "circle") {
-            const cx = currentX + el.w / 2, cy = currentY + el.h / 2, r = Math.min(el.w, el.h) / 2;
+            const cx = el.x + el.w / 2, cy = currentY + el.h / 2, r = Math.min(el.w, el.h) / 2;
             doc.circle(cx, cy, r).clip();
           } else {
-            doc.rect(currentX, currentY, el.w, el.h).clip();
+            doc.rect(el.x, currentY, el.w, el.h).clip();
           }
-          doc.image(buf, currentX, currentY, { width: el.w, height: el.h, cover: [el.w, el.h] });
+          doc.image(buf, el.x, currentY, { width: el.w, height: el.h, cover: [el.w, el.h] });
           doc.restore();
 
-          if (el.stackGroup) {
-            groupY[el.stackGroup] = currentY + el.h;
-            groupLastY[el.stackGroup] = el.y + el.h;
+          // Draw border if requested (after restore so it's not clipped/obscured)
+          if (el.borderWidth && el.borderWidth > 0) {
+            doc.save();
+            const bWidth = el.borderWidth;
+            const bColor = rc(el.borderColor) || "#000000";
+            
+            doc.lineWidth(bWidth).strokeColor(bColor);
+            
+            if (el.shape === "circle") {
+              const cx = el.x + el.w / 2, cy = currentY + el.h / 2, r = Math.min(el.w, el.h) / 2;
+              doc.circle(cx, cy, r).stroke();
+            } else {
+              // Draw exactly on the edge
+              doc.rect(el.x, currentY, el.w, el.h).stroke();
+            }
+            doc.restore();
           }
-        } catch {}
+        } catch (err) {
+          console.error("PDF Gen: Image render error", err);
+        }
+        if (el.stackGroup) commitStack(el, currentY, el.h);
+        break;
+      }
+
+      case "qrcode": {
+        const text = el.staticText ?? data[el.field || ""] ?? "";
+        if (!text) {
+          if (el.stackGroup) skipStack(el);
+          break;
+        }
+        const currentY = el.stackGroup ? applyStack(el) : el.y;
+        try {
+          // Generate a high-resolution QR code buffer (600px)
+          // Using Level L (Low) to keep blocks large and clear like the sample provided
+          const qrBuf = await QRCode.toBuffer(text, { 
+            margin: 4, 
+            errorCorrectionLevel: 'L',
+            width: 600,
+            color: { dark: "#000000", light: "#ffffff" }
+          });
+          doc.image(qrBuf, el.x, currentY, { width: el.w, height: el.h });
+        } catch (err) {
+          console.error("PDF Gen: QR Error", err);
+        }
+        if (el.stackGroup) commitStack(el, currentY, el.h);
         break;
       }
     }
@@ -177,14 +255,14 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     prisma.associationSetting.findUnique({ where: { id: 1 } }),
   ]);
 
-  if (!(setting?.enableIdCard ?? true) || !memberRow) {
+  if (!setting || !memberRow || !setting.enableIdCard) {
     return null;
   }
 
   // 2. Load idCardSettings safely
   let cs: Record<string, any> = {};
   try {
-    const rawSettings = setting.idCardSettings;
+    const rawSettings = setting?.idCardSettings;
     if (rawSettings) {
       if (typeof rawSettings === "string") {
         cs = JSON.parse(rawSettings);
@@ -213,7 +291,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     showAddress:           (cs.showAddress           as boolean) ?? true,
     showDateOfBirth:       (cs.showDateOfBirth       as boolean) ?? false,
     showBusinessName:      (cs.showBusinessName      as boolean) ?? true,
-    showBusinessNameTamil: (cs.showBusinessNameTamil as boolean) ?? false,
+    showBusinessNameTamil: (cs.showBusinessNameTamil as boolean) ?? true,
     showJoinedAt:          (cs.showJoinedAt          as boolean) ?? true,
   };
 
@@ -247,17 +325,27 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
   if (Array.isArray(cs.layout) && cs.layout.length > 0) {
     const startYr = new Date(memberRow.joinedAt).getFullYear();
     const pdfData: Record<string, string> = {
+      "member.uuid":              memberRow.uuid,
+      "uuid":                     memberRow.uuid,
       "member.name":              memberRow.name,
       "member.nameTamil":         memberRow.nameTamil         || "",
       "member.position":          memberRow.position          || "",
       "member.businessName":      memberRow.businessName      || "",
       "member.businessNameTamil": memberRow.businessNameTamil || "",
+      "businessName":             memberRow.businessName      || "",
+      "businessNameTamil":        memberRow.businessNameTamil || "",
+      "member.industry":          memberRow.industry          || "",
+      "member.village":           memberRow.village           || "",
+      "village":                  memberRow.village           || "",
       "member.phone":             memberRow.phone,
+      "phone":                    memberRow.phone,
       "member.membershipId":      memberRow.membershipId,
+      "membershipId":             memberRow.membershipId,
       "member.location":          [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", "),
-      "member.validity":          `${startYr} – ${startYr + 2}`,
+      "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (cs.validityYears || 2))}`,
       "member.email":             memberRow.email || "",
       "member.address":           memberRow.address || "",
+      "address":                  memberRow.address || "",
       "association.name":         setting?.name     || "",
       "association.nameTamil":    setting?.nameTamil || "",
       "association.regNumber":    setting?.regNumber ? `பதிவு எண்: ${setting.regNumber}` : "",

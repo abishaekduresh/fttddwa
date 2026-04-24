@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, LogIn, Loader2, UserPlus, Timer } from "lucide-react";
+import { Eye, EyeOff, LogIn, Loader2, UserPlus, Timer, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { loginSchema, type LoginInput } from "@/lib/validation/auth.schema";
 import { useAuthStore } from "@/store/auth.store";
@@ -133,16 +133,30 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="flex flex-col items-center mb-6">
-        {settings?.logo1Url && (
-          <img src={settings.logo1Url} alt="Logo" className="w-16 h-16 object-contain mb-4" />
+      <div className="flex items-center gap-3 mb-6">
+        {settings?.logo1Url ? (
+          <img src={settings.logo1Url} alt="Logo" className="h-14 w-14 object-contain flex-shrink-0" />
+        ) : (
+          <div className="h-14 w-14 flex-shrink-0" />
         )}
-        <h2 className="text-2xl font-bold text-slate-900 text-center">
-          {settings?.name || "Sign in"}
-        </h2>
-        <p className="text-slate-500 text-sm text-center">
-          {settings?.tagline || "Enter your credentials to access the portal"}
-        </p>
+        <div className="flex-1 text-center min-w-0">
+          <h2 className="text-base font-bold text-slate-900 leading-tight">
+            {settings?.name || "Sign in"}
+          </h2>
+          {/* {settings?.nameTamil && (
+            <p className="text-xs text-slate-500 mt-0.5" style={{ fontFamily: "'NotoSansTamil', sans-serif" }}>
+              {settings.nameTamil}
+            </p>
+          )} */}
+          <p className="text-xs text-slate-500 mt-0.5">
+            {settings?.tagline || "Enter your credentials to access the portal"}
+          </p>
+        </div>
+        {settings?.logo2Url ? (
+          <img src={settings.logo2Url} alt="Logo 2" className="h-14 w-14 object-contain flex-shrink-0" />
+        ) : (
+          <div className="h-14 w-14 flex-shrink-0" />
+        )}
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
@@ -213,7 +227,7 @@ export default function LoginPage() {
         </button>
       </form>
 
-      <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+      <div className="mt-6 pt-5 border-t border-slate-100 space-y-3 text-center">
         <p className="text-sm text-slate-500">
           Not yet a member?{" "}
           <Link
@@ -222,6 +236,16 @@ export default function LoginPage() {
           >
             <UserPlus size={13} />
             Register here
+          </Link>
+        </p>
+        <p className="text-sm text-slate-500">
+          Already a member?{" "}
+          <Link
+            href="/members/id-card"
+            className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-800 font-medium"
+          >
+            <CreditCard size={13} />
+            Get your ID card
           </Link>
         </p>
       </div>

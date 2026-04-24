@@ -4,7 +4,7 @@ import { apiFetch } from "@/lib/api/client-fetch";
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Search, Download, Trash2, Eye, Edit, ChevronLeft, ChevronRight, MapPin, Phone } from "lucide-react";
+import { Plus, Search, Download, Trash2, Eye, Edit, ChevronLeft, ChevronRight, MapPin, Phone, RefreshCcw, CheckCircle, ShieldOff, ShieldCheck } from "lucide-react";
 import { formatDate, calculateAge } from "@/lib/utils/format";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
@@ -20,6 +20,7 @@ interface Member {
   phone: string;
   status: string;
   createdAt: string;
+  validUntil?: string;
   position?: string;
   dateOfBirth?: string;
 }
@@ -34,6 +35,7 @@ interface Pagination {
 }
 
 const statusColors: Record<string, string> = {
+  PENDING: "badge badge-amber",
   ACTIVE: "badge badge-green",
   INACTIVE: "badge badge-gray",
   SUSPENDED: "badge badge-red",
@@ -52,6 +54,8 @@ export default function MembersPage() {
   const [districts, setDistricts] = useState<string[]>([]);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   const fetchMembers = useCallback(async () => {
     setLoading(true);
@@ -88,6 +92,47 @@ export default function MembersPage() {
       .catch(() => {});
   }, []);
 
+  const handleToggleStatus = async (member: Member) => {
+    const newStatus = member.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    setTogglingId(member.id);
+    try {
+      const res = await apiFetch(`/api/members/${member.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success(newStatus === "ACTIVE" ? `${member.name} activated` : `${member.name} blocked`);
+        fetchMembers();
+      } else {
+        toast.error(json.message || "Failed to update status");
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleApprove = async (id: number, name: string) => {
+    setApprovingId(id);
+    try {
+      const res = await apiFetch(`/api/members/${id}/approve`, { method: "POST" });
+      const json = await res.json();
+      if (json.success) {
+        toast.success(`${name} approved`);
+        fetchMembers();
+      } else {
+        toast.error(json.message || "Approval failed");
+      }
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
   const handleDelete = (id: number, name: string) => {
     setConfirmDelete({ id, name });
   };
@@ -113,6 +158,29 @@ export default function MembersPage() {
     }
   };
 
+  const handleRenew = async (member: Member) => {
+    const confirmRenew = window.confirm(`Renew ${member.name}'s ID card using global validity settings?`);
+    if (!confirmRenew) return;
+    
+    const loadingToast = toast.loading(`Renewing ${member.name}...`);
+    try {
+      const res = await apiFetch(`/api/members/${member.id}/renew`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}), // Years handled by server
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success("Member renewed successfully", { id: loadingToast });
+        fetchMembers();
+      } else {
+        toast.error(json.message || "Renewal failed", { id: loadingToast });
+      }
+    } catch {
+      toast.error("Network error", { id: loadingToast });
+    }
+  };
+
   const actionButtons = (member: Member) => (
     <div className="flex items-center gap-1">
       <Link
@@ -130,6 +198,39 @@ export default function MembersPage() {
         >
           <Edit size={15} />
         </Link>
+      )}
+      {hasPermission("members:update") && (member.status === "ACTIVE" || member.status === "INACTIVE") && (
+        <button
+          onClick={() => handleToggleStatus(member)}
+          disabled={togglingId === member.id}
+          className={`p-1.5 rounded transition-colors disabled:opacity-50 ${
+            member.status === "ACTIVE"
+              ? "text-slate-400 hover:text-orange-600 hover:bg-orange-50"
+              : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+          }`}
+          title={member.status === "ACTIVE" ? "Block member" : "Unblock member"}
+        >
+          {member.status === "ACTIVE" ? <ShieldOff size={15} /> : <ShieldCheck size={15} />}
+        </button>
+      )}
+      {hasPermission("members:update") && member.status === 'PENDING' && (
+        <button
+          onClick={() => handleApprove(member.id, member.name)}
+          disabled={approvingId === member.id}
+          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors disabled:opacity-50"
+          title="Approve member"
+        >
+          <CheckCircle size={15} />
+        </button>
+      )}
+      {hasPermission("members:update") && (member.status === 'EXPIRED' || (member.validUntil && new Date(member.validUntil) < new Date())) && (
+        <button
+          onClick={() => handleRenew(member)}
+          className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+          title="Renew / Extend Validity"
+        >
+          <RefreshCcw size={15} />
+        </button>
       )}
       {hasPermission("members:delete") && (
         <button
@@ -231,6 +332,7 @@ export default function MembersPage() {
             className="form-input w-full sm:w-auto"
           >
             <option value="">All Status</option>
+            <option value="PENDING">Pending Approval</option>
             <option value="ACTIVE">Active</option>
             <option value="INACTIVE">Inactive</option>
             <option value="SUSPENDED">Suspended</option>

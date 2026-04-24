@@ -3,7 +3,7 @@
 import { apiFetch } from "@/lib/api/client-fetch";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Edit, Trash2, Shield, CheckCircle, XCircle, Clock, Calendar } from "lucide-react";
+import { Plus, Edit, Trash2, Shield, CheckCircle, XCircle, Clock, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/utils/format";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
@@ -54,12 +54,14 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     const res = await apiFetch("/api/users");
     const json = await res.json();
-    if (json.success) setUsers(json.data);
+    if (json.success) { setUsers(json.data); setPage(1); }
     setLoading(false);
   }, []);
 
@@ -181,6 +183,40 @@ export default function UsersPage() {
     );
   };
 
+  const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const pagedUsers = users.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const paginationEl = totalPages <= 1 ? null : (
+    <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50 text-sm">
+      <span className="text-slate-500">
+        {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, users.length)} of {users.length}
+      </span>
+      <div className="flex items-center gap-1">
+        <button onClick={() => setPage(p => p - 1)} disabled={page === 1}
+          className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          <ChevronLeft size={16} />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+          .reduce<(number | "…")[]>((acc, n, i, arr) => {
+            if (i > 0 && n - (arr[i - 1] as number) > 1) acc.push("…");
+            acc.push(n); return acc;
+          }, [])
+          .map((n, i) => n === "…"
+            ? <span key={`e${i}`} className="px-1.5 text-slate-400">…</span>
+            : <button key={n} onClick={() => setPage(n as number)}
+                className={`w-7 h-7 rounded text-xs font-medium transition-colors ${page === n ? "bg-primary text-white" : "hover:bg-slate-200 text-slate-600"}`}>
+                {n}
+              </button>
+          )}
+        <button onClick={() => setPage(p => p + 1)} disabled={page === totalPages}
+          className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -216,7 +252,7 @@ export default function UsersPage() {
             <p className="font-medium">No users found</p>
           </div>
         ) : (
-          users.map((user) => (
+          pagedUsers.map((user) => (
             <div key={user.id} className="card p-4 space-y-3">
               {/* Top row: avatar + name + actions */}
               <div className="flex items-start justify-between gap-2">
@@ -268,6 +304,7 @@ export default function UsersPage() {
           ))
         )}
       </div>
+      {paginationEl}
 
       {/* Desktop table — hidden below md */}
       <div className="card overflow-hidden hidden md:block">
@@ -293,7 +330,7 @@ export default function UsersPage() {
                     ))}
                   </tr>
                 ))
-              ) : users.map((user) => (
+              ) : pagedUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-5 py-3">
                     <span className="font-mono text-xs font-semibold text-slate-500">
@@ -336,6 +373,7 @@ export default function UsersPage() {
             </tbody>
           </table>
         </div>
+        {paginationEl}
       </div>
 
       {/* Create / Edit modal */}

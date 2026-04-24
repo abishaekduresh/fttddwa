@@ -35,6 +35,7 @@ export interface CreateMemberInput {
   photoUrl?: string;
   remark?: string;
   createdById?: number;
+  status?: MemberStatus;
 }
 
 export interface MemberFilters {
@@ -65,9 +66,26 @@ export async function createMember(input: CreateMemberInput) {
     remark: input.remark ? sanitizeText(input.remark) : undefined,
   };
 
+  // Calculate validity date based on settings
+  const setting = await prisma.associationSetting.findUnique({ where: { id: 1 }, select: { idCardSettings: true } });
+  let validityYears = 2;
+  if (setting?.idCardSettings) {
+    const cs = (typeof setting.idCardSettings === "string" ? JSON.parse(setting.idCardSettings) : setting.idCardSettings) as any;
+    validityYears = Number(cs.validityYears) || 2;
+  }
+  const joinedAt = new Date();
+  const validUntil = new Date(joinedAt.getFullYear() + validityYears, 11, 31, 23, 59, 59);
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (prisma.member.create as any)({
-    data: { ...sanitized, membershipId, uuid: generateUUID() },
+    data: {
+      ...sanitized,
+      membershipId,
+      uuid: generateUUID(),
+      validUntil,
+      joinedAt,
+      ...(input.status ? { status: input.status } : {}),
+    },
   });
 }
 
@@ -205,9 +223,10 @@ export async function getDistinctTaluks(district?: string): Promise<string[]> {
 
 // ─── Public ID Card Lookups ────────────────────────────────────────────────────
 
-interface MemberCardRow {
+export interface MemberCardRow {
   uuid: string;
   membershipId: string;
+  validUntil: Date | null;
   name: string;
   nameTamil: string | null;
   businessName: string | null;
@@ -224,6 +243,7 @@ interface MemberCardRow {
   status: string;
   dateOfBirth: Date | null;
   weddingDate: Date | null;
+  industry: string | null;
   joinedAt: Date;
 }
 
@@ -245,18 +265,47 @@ export async function lookupMemberByBothFields(memberId: string, phone: string):
 
 /** Fetch member card data by UUID. Returns public fields only — no aadhaarHash or internal IDs. */
 export async function getMemberCardByUuid(uuid: string): Promise<MemberCardRow | null> {
-  const rows = await prisma.$queryRaw<MemberCardRow[]>`
-    SELECT
-      uuid, membershipId, name, nameTamil,
-      businessName, businessNameTamil, position,
-      district, taluk, village, address, state,
-      phone, email, photoUrl, status,
-      dateOfBirth, weddingDate, joinedAt
-    FROM members
-    WHERE uuid = ${uuid}
-      AND status = 'ACTIVE'
-      AND deletedAt IS NULL
-    LIMIT 1
-  `;
-  return rows[0] ?? null;
+  const row = await prisma.member.findFirst({
+    where: { uuid, status: "ACTIVE", deletedAt: null },
+    select: {
+      uuid: true, membershipId: true, name: true, nameTamil: true,
+      businessName: true, businessNameTamil: true, position: true,
+      district: true, taluk: true, village: true, address: true, state: true,
+      phone: true, email: true, photoUrl: true, status: true,
+      industry: true, validUntil: true,
+      dateOfBirth: true, weddingDate: true, joinedAt: true,
+    },
+  });
+  return row as MemberCardRow | null;
+}
+
+export async function extendMemberValidity(id: number, years?: number) {
+  const [member, setting] = await Promise.all([
+    prisma.member.findUnique({ where: { id }, select: { validUntil: true } }),
+    prisma.associationSetting.findUnique({ where: { id: 1 }, select: { idCardSettings: true } })
+  ]);
+
+  if (!member) throw new Error("Member not found");
+
+  let validityYears = years;
+  if (!validityYears) {
+    const cs = (typeof setting?.idCardSettings === "string" ? JSON.parse(setting.idCardSettings) : setting?.idCardSettings) as any;
+    validityYears = Number(cs?.validityYears) || 2;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const m = member as any;
+  const baseDate = (m.validUntil && m.validUntil > new Date())
+    ? new Date(m.validUntil)
+    : new Date();
+
+  const newValidUntil = new Date(baseDate.getFullYear() + validityYears, 11, 31, 23, 59, 59, 999);
+
+  return prisma.member.update({
+    where: { id },
+    data: { 
+      validUntil: newValidUntil,
+      status: MemberStatus.ACTIVE
+    }
+  });
 }

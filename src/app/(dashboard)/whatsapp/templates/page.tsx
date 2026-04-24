@@ -3,7 +3,7 @@
 import { apiFetch } from "@/lib/api/client-fetch";
 
 import { useEffect, useState, useCallback } from "react";
-import { LayoutTemplate, RefreshCw, Loader2, Trash2 } from "lucide-react";
+import { LayoutTemplate, RefreshCw, Loader2, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
@@ -117,6 +117,8 @@ export default function TemplatesPage() {
   const [filterVendor, setFilterVendor] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -132,7 +134,7 @@ export default function TemplatesPage() {
     finally { setLoading(false); }
   }, [filterVendor]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { fetchAll(); setPage(1); }, [fetchAll]);
 
   const handleSync = async (vendorId: number) => {
     setSyncing(vendorId);
@@ -168,6 +170,40 @@ export default function TemplatesPage() {
     } catch { toast.error("Network error"); }
     finally { setDeletingId(null); setConfirmDelete(null); }
   };
+
+  const totalPages = Math.max(1, Math.ceil(templates.length / PAGE_SIZE));
+  const pagedTemplates = templates.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const paginationEl = totalPages <= 1 ? null : (
+    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50 text-sm">
+      <span className="text-slate-500">
+        {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, templates.length)} of {templates.length}
+      </span>
+      <div className="flex items-center gap-1">
+        <button onClick={() => setPage(p => p - 1)} disabled={page === 1}
+          className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          <ChevronLeft size={16} />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter(n => n === 1 || n === totalPages || Math.abs(n - page) <= 1)
+          .reduce<(number | "…")[]>((acc, n, i, arr) => {
+            if (i > 0 && n - (arr[i - 1] as number) > 1) acc.push("…");
+            acc.push(n); return acc;
+          }, [])
+          .map((n, i) => n === "…"
+            ? <span key={`e${i}`} className="px-1.5 text-slate-400">…</span>
+            : <button key={n} onClick={() => setPage(n as number)}
+                className={`w-7 h-7 rounded text-xs font-medium transition-colors ${page === n ? "bg-primary text-white" : "hover:bg-slate-200 text-slate-600"}`}>
+                {n}
+              </button>
+          )}
+        <button onClick={() => setPage(p => p + 1)} disabled={page === totalPages}
+          className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          <ChevronRight size={16} />
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -248,7 +284,7 @@ export default function TemplatesPage() {
                   </td>
                 </tr>
               ) : (
-                templates.map(t => (
+                pagedTemplates.map(t => (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs text-slate-700">{t.templateName}</td>
                     <td className="px-4 py-3">
@@ -289,6 +325,7 @@ export default function TemplatesPage() {
             </tbody>
           </table>
         </div>
+        {paginationEl}
       </div>
 
       {/* Mobile cards */}
@@ -309,7 +346,7 @@ export default function TemplatesPage() {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {templates.map(t => (
+            {pagedTemplates.map(t => (
               <div key={t.id} className="p-4 space-y-1.5">
                 <p className="font-mono text-xs text-slate-700 font-medium">{t.templateName}</p>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -341,6 +378,7 @@ export default function TemplatesPage() {
             ))}
           </div>
         )}
+        {paginationEl}
       </div>
 
       {confirmDelete && (

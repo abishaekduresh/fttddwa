@@ -14,7 +14,7 @@ export default function MemberRegisterPage() {
   const [success, setSuccess] = useState<{ membershipId: string; name: string } | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
-  const [settings, setSettings] = useState<{ logo1Url?: string; name?: string; tagline?: string } | null>(null);
+  const [settings, setSettings] = useState<{ logo1Url?: string; logo2Url?: string; name?: string; nameTamil?: string; tagline?: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -129,14 +129,24 @@ export default function MemberRegisterPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4">
         <div className="w-full max-w-md text-center">
-          {settings?.logo1Url ? (
-            <img src={settings.logo1Url} alt="Logo" className="w-16 h-16 object-contain mx-auto mb-4" />
-          ) : (
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
-              <span className="text-2xl font-bold text-primary">F</span>
+          <div className="flex items-center gap-3 mb-4">
+            {settings?.logo1Url ? (
+              <img src={settings.logo1Url} alt="Logo" className="h-14 w-14 object-contain flex-shrink-0" />
+            ) : (
+              <div className="h-14 w-14 flex-shrink-0" />
+            )}
+            <div className="flex-1 text-center min-w-0">
+              <h1 className="text-base font-bold text-white leading-tight">{settings?.name || "FTTDDWA"}</h1>
+              {/* {settings?.nameTamil && (
+                <p className="text-xs text-white/75 mt-0.5" style={{ fontFamily: "'NotoSansTamil', sans-serif" }}>{settings.nameTamil}</p>
+              )} */}
             </div>
-          )}
-          <h1 className="text-2xl font-bold text-white mb-2">{settings?.name || "FTTDDWA"}</h1>
+            {settings?.logo2Url ? (
+              <img src={settings.logo2Url} alt="Logo 2" className="h-14 w-14 object-contain flex-shrink-0" />
+            ) : (
+              <div className="h-14 w-14 flex-shrink-0" />
+            )}
+          </div>
           <div className="bg-white rounded-2xl shadow-2xl p-8">
             <ShieldOff size={48} className="text-slate-300 mx-auto mb-4" />
             <h2 className="text-lg font-bold text-slate-900 mb-2">Registration Unavailable</h2>
@@ -154,22 +164,31 @@ export default function MemberRegisterPage() {
 
   return (
     <>
+    <style>{`@font-face { font-family: 'NotoSansTamil'; src: url('/fonts/NotoSansTamil.ttf') format('truetype'); }`}</style>
     <Toaster position="top-right" toastOptions={{ duration: 5000 }} />
     <div className="min-h-screen bg-gradient-to-br from-primary-900 via-primary-800 to-primary-700 flex items-center justify-center p-4 py-12">
       <div className="w-full max-w-2xl">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="flex items-center gap-3 mb-8">
           {settings?.logo1Url ? (
-            <img src={settings.logo1Url} alt="Logo" className="w-16 h-16 object-contain mx-auto mb-4" />
+            <img src={settings.logo1Url} alt="Logo" className="h-14 w-14 object-contain flex-shrink-0" />
           ) : (
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-2xl shadow-lg mb-4">
-              <span className="text-2xl font-bold text-primary">F</span>
-            </div>
+            <div className="h-14 w-14 flex-shrink-0" />
           )}
-          <h1 className="text-2xl font-bold text-white">{settings?.name || "FTTDDWA"}</h1>
-          <p className="text-primary-200 text-sm mt-1">
-            {settings?.tagline || "Federation of Tamil Nadu Tent Dealers & Decorators"}
-          </p>
+          <div className="flex-1 text-center min-w-0">
+            <h1 className="text-base font-bold text-white leading-tight">{settings?.name || "FTTDDWA"}</h1>
+            {/* {settings?.nameTamil && (
+              <p className="text-xs text-white/75 mt-0.5" style={{ fontFamily: "'NotoSansTamil', sans-serif" }}>{settings.nameTamil}</p>
+            )} */}
+            <p className="text-primary-200 text-xs mt-0.5">
+              {settings?.tagline || "Federation of Tamil Nadu Tent Dealers & Decorators"}
+            </p>
+          </div>
+          {settings?.logo2Url ? (
+            <img src={settings.logo2Url} alt="Logo 2" className="h-14 w-14 object-contain flex-shrink-0" />
+          ) : (
+            <div className="h-14 w-14 flex-shrink-0" />
+          )}
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8">
@@ -353,12 +372,22 @@ export default function MemberRegisterPage() {
                   </legend>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="form-label">Business Name</label>
+                      <label className="form-label text-slate-700">Business Name (English)</label>
                       <input
                         type="text"
                         placeholder="e.g. Ravi Tent House"
                         className="form-input"
                         {...register("businessName")}
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label text-slate-700">Business Name (Tamil)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. ரவி டென்ட் ஹவுஸ்"
+                        className="form-input tamil"
+                        dir="auto"
+                        {...register("businessNameTamil")}
                       />
                     </div>
                     <div>

@@ -12,6 +12,7 @@ interface DashboardStats {
   totalMembers: number;
   activeMembers: number;
   inactiveMembers: number;
+  expiredMembers: number;
   totalUsers: number;
   newMembersThisMonth: number;
   recentMembers: Array<{
@@ -120,6 +121,13 @@ export default function DashboardPage() {
       icon: TrendingUp,
       color: "bg-purple-50 text-purple-600",
       change: "Last 30 days",
+    },
+    {
+      label: "Expired Members",
+      value: stats?.expiredMembers || 0,
+      icon: BellOff,
+      color: "bg-red-50 text-red-600",
+      change: "Requires renewal",
     },
     {
       label: "Districts Covered",

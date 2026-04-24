@@ -45,6 +45,28 @@ export async function GET(req: NextRequest) {
     if (!/^\d{10}$/.test(phone)) return error("Phone number must be exactly 10 digits.");
     if (memberId.length < 3) return error("Invalid Membership ID.");
 
+    // Check member status to give specific error messages
+    const statusCheck = await prisma.$queryRaw<{ status: string }[]>`
+      SELECT status FROM members
+      WHERE deletedAt IS NULL
+        AND membershipId = ${memberId.trim().toUpperCase()}
+        AND phone = ${phone.trim()}
+      LIMIT 1
+    `;
+    const memberStatus = statusCheck[0]?.status;
+    if (memberStatus === "PENDING") {
+      return error("Your registration is pending approval. Please contact the association to get approved.");
+    }
+    if (memberStatus === "INACTIVE") {
+      return error("Your membership has been deactivated. Please contact the association for assistance.");
+    }
+    if (memberStatus === "SUSPENDED") {
+      return error("Your membership is suspended. Please contact the association for assistance.");
+    }
+    if (memberStatus === "EXPIRED") {
+      return error("Your membership has expired. Please contact the association to renew.");
+    }
+
     const uuid = await lookupMemberByBothFields(memberId, phone);
     if (!uuid) {
       return error("No active member found with that Membership ID and phone number combination.");

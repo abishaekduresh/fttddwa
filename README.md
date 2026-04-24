@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 1.9.0** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
+> **Version 2.0.0** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
 
 ---
 
@@ -14,8 +14,10 @@
 - **Member Management** — Add, edit, delete, search, and filter members with Tamil + English name support
 - **Membership ID Generation** — Auto-generated IDs in format `FTTD{YY}{NNNNN}` (e.g. `FTTD260001`)
 - **Wedding Date Tracking** — Record and display anniversary dates for all members
-- **Public Self-Registration** — Members can register at `/members/register` (toggleable by admin); submitted records are created as `INACTIVE` pending approval
-- **Member ID Card** — Public digital ID card system. Members look up by phone or Membership ID and are securely redirected to a one-time viewable PDF via a proxied URL (`/members/id-card/:token.pdf`). Card design features a modern portrait layout with automated validity calculation, digital signatures, and **full admin customization (colors, titles, visibility)**. Includes **dynamic vertical stacking** to prevent gaps when fields are missing and **multi-line wrapping** for long addresses.
+- **Public Self-Registration** — Members can register at `/members/register` (toggleable by admin); submitted records land as `PENDING` and require admin approval before becoming active
+- **Member Approval Workflow** — Self-registered members start with `PENDING` status. Admins approve them with a one-click button in the members list, changing status to `ACTIVE`. Non-active statuses (PENDING, INACTIVE, SUSPENDED, EXPIRED) each produce a specific descriptive error on the ID card page
+- **Member Status Toggle** — Admins can block/unblock members by toggling between `ACTIVE` and `INACTIVE` status directly from the members list
+- **Member ID Card** — Public digital ID card system. Members verify identity at `/members/id-card` (Membership ID + phone); on success, they are redirected to a cryptographically signed, **single-use** PDF token URL that expires in 10 minutes. Card design features a modern portrait layout with automated validity calculation, digital signatures, and **full admin customization (colors, titles, visibility)**. Includes **dynamic vertical stacking** to prevent gaps when fields are missing and **multi-line wrapping** for long addresses.
 - **WhatsApp Module** — Automated + Manual messaging with multi-vendor support, fallback logic, and real-time status tracking; cron triggered via admin UI or external HTTP call (no worker required)
 - **Membership Analytics** — Dashboard stats for membership growth and WhatsApp credit consumption
 - **Photo Upload** — Secure passport-size photo upload with type + size validation (stored in Vercel Blob)
@@ -33,6 +35,7 @@
 - `apiFetch` client utility — all dashboard API calls auto-refresh on 401, redirect to login with toast on session expiry
 - Input sanitization (XSS protection via `sanitize-html`)
 - Security headers via Next.js config (CSP, X-Frame-Options, HSTS-ready)
+- **HMAC-signed single-use PDF tokens** — stateless HMAC-SHA256 tokens verified across processes; DB unique-constraint enforces one-view-only; expired tokens cleaned up lazily
 
 ### Admin Dashboard
 - Real-time stats — total members, district-wise distribution, monthly growth
@@ -330,8 +333,10 @@ Interactive Swagger UI: [http://localhost:3000/api/docs](http://localhost:3000/a
 | `POST` | `/api/upload` | Upload photo (→ Vercel Blob) |
 | `GET` | `/api/settings/app` | Public app settings (registration flag, id card flag, branding) |
 | `PATCH` | `/api/settings/app/update` | Update app settings (Admin+) |
-| `GET` | `/api/members/card/lookup` | Public — look up member UUID by phone or Membership ID |
+| `GET` | `/api/members/card/lookup` | Public — look up member UUID + issue PDF token (Membership ID + phone) |
 | `GET` | `/api/members/card/:uuid` | Public — fetch member card data by UUID |
+| `POST` | `/api/members/:id/approve` | Approve a PENDING member (Admin+) |
+| `PATCH` | `/api/members/:id/status` | Toggle member ACTIVE / INACTIVE (Data Entry+) |
 | `GET` | `/api/whatsapp/logs` | List message logs |
 | `GET` | `/api/whatsapp/stats/usage` | Credit usage stats |
 | `POST` | `/api/whatsapp/send` | Manual message send |
@@ -387,7 +392,8 @@ Before going to production:
 
 ## Future Roadmap
 
-- [ ] ID card generation with QR code (membership card PDF)
+- [x] ID card generation with single-use PDF token (membership card PDF)
+- [ ] QR code embed on ID card for offline verification
 - [ ] SMS/Email notification system (OTP, renewal alerts)
 - [ ] Payment integration (annual membership fee)
 - [ ] Multi-tenant support (district-wise admin login)

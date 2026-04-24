@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   try {
     const row = await prisma.$queryRaw<any[]>`
-      SELECT enableMemberRegistration, enableIdCard, idCardSettings, name, tagline, logo1Url
+      SELECT enableMemberRegistration, enableIdCard, idCardSettings, name, nameTamil, tagline, logo1Url, logo2Url
       FROM association_settings WHERE id = 1 LIMIT 1
     `;
     const r = row[0];
@@ -17,8 +17,10 @@ export async function GET() {
       enableIdCard: r?.enableIdCard ?? true,
       idCardSettings,
       name: r?.name,
+      nameTamil: r?.nameTamil,
       tagline: r?.tagline,
       logo1Url: r?.logo1Url,
+      logo2Url: r?.logo2Url,
     });
   } catch (err) {
     console.error("GET /api/settings/app error:", err);

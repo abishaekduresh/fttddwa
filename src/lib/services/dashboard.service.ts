@@ -94,6 +94,7 @@ export async function getDashboardStats() {
     recentActivity,
     monthlyGrowth,
     upcomingCelebrations,
+    expiredMembers,
   ] = await Promise.all([
     prisma.member.count(),
     prisma.member.count({ where: { status: "ACTIVE" } }),
@@ -116,12 +117,14 @@ export async function getDashboardStats() {
     }),
     prisma.member.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     getUpcomingCelebrations(),
+    prisma.member.count({ where: { validUntil: { lt: new Date() }, status: { not: "DELETED" } } }),
   ]);
 
   return {
     totalMembers,
     activeMembers,
     inactiveMembers: totalMembers - activeMembers,
+    expiredMembers,
     totalUsers,
     newMembersThisMonth: monthlyGrowth,
     recentMembers,

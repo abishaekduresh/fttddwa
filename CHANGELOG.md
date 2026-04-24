@@ -6,7 +6,42 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
-### [1.9.0] — 2026-04-24
+## [2.0.0] — 2026-04-25
+
+### Added
+- **Member Approval Workflow** — Public self-registrations now land as `PENDING` status. Admins see a one-click **Approve** button on the members list page; approving sets status to `ACTIVE` and writes an audit log entry.
+- **Member Status Toggle (Block/Unblock)** — New per-member toggle button (ShieldOff / ShieldCheck) lets Data Entry operators and above flip a member between `ACTIVE` and `INACTIVE`. Backed by `PATCH /api/members/:id/status`.
+- **`POST /api/members/:id/approve`** — New authenticated endpoint (Admin+) that transitions a `PENDING` member to `ACTIVE`.
+- **`PATCH /api/members/:id/status`** — New authenticated endpoint (Data Entry+) accepting `{ status: "ACTIVE" | "INACTIVE" }`.
+- **Per-Status ID Card Error Messages** — `/members/id-card` now returns a descriptive toast for each non-active status: PENDING (awaiting approval), INACTIVE (deactivated), SUSPENDED, and EXPIRED — instead of a generic "not found" message.
+- **Dual-Logo Header on Public Pages** — Login, public member registration (`/members/register`), and ID card lookup (`/members/id-card`) pages now display logo1 (left) + association name / Tamil name / tagline (centre) + logo2 (right), matching the admin dashboard branding.
+- **"Get your ID card" Link on Login Page** — Added a `CreditCard` icon link to `/members/id-card` on the login page for members who already have an account.
+- **"Back to Register" Link on ID Card Page** — Added a "Not yet a member? Register here" link on the `/members/id-card` lookup page.
+- **`nameTamil` and `logo2Url` in `/api/settings/app`** — Public app-settings endpoint now returns both fields so public pages can render the dual-logo header without additional API calls.
+- **DB-backed Single-Use PDF Tokens** — `PdfToken` model added to the schema. `consumePdfToken()` atomically records usage via a DB unique constraint; a second attempt on the same token returns `null` immediately. Expired tokens are purged lazily on each successful consumption.
+- **`PdfToken` Prisma Model** — New `pdf_tokens` table: `tokenHash CHAR(64) PRIMARY KEY`, `expiresAt`, `usedAt`.
+
+### Changed
+- **`MemberStatus` enum** — Added `PENDING` value. Prisma migration: `add_pending_member_status`.
+- **`/api/members/register`** — Now creates members with `status: PENDING` instead of `INACTIVE`.
+- **`/api/members/card/lookup`** — Comprehensive status check before UUID lookup: PENDING / INACTIVE / SUSPENDED / EXPIRED each return a tailored error message.
+- **`src/lib/pdf-tokens.ts`** — Switched from in-memory Map (broken under Next.js App Router module isolation) to stateless HMAC-SHA256 signed tokens + DB single-use enforcement. `consumePdfToken` is now `async`.
+- **`/members/id-card/pdf/[token]/route.ts`** — Updated to `await consumePdfToken(token)`.
+- **`/members/id-card/page.tsx`** — Simplified to single-step verification → direct PDF redirect (no intermediate card preview). Includes dual-logo header and NotoSansTamil font.
+- **`/(auth)/layout.tsx`** — Added NotoSansTamil `@font-face` declaration so Tamil text renders correctly on login and forgot-password pages.
+- **Members List Page** — Added `PENDING` status badge (amber), Approve button, and Block/Unblock toggle button. Added `PENDING` option to status filter dropdown.
+
+### Fixed
+- **"Link Expired or Already Used" on First Use** — Module isolation in Next.js App Router caused the in-memory token Map to be inaccessible across route handlers. Fixed with HMAC-signed stateless tokens that need no shared state.
+- **Pagination Click Handlers Broken** — `const Pagination = () =>` defined inside a render body creates a new React component type on every render, causing unmount/remount on every click. Fixed in users and WhatsApp templates pages by converting to `const paginationEl = ...` (plain JSX variable).
+
+### Database
+- `members` table: `status` enum extended with `PENDING` value (migration: `add_pending_member_status`).
+- New `pdf_tokens` table: `tokenHash CHAR(64) PK`, `expiresAt DATETIME`, `usedAt DATETIME NULL` (migration: `add_pdf_tokens_table`).
+
+---
+
+## [1.9.0] — 2026-04-24
 
 ### Added
 - **Dynamic Vertical Stacking (Auto-Stacking)** — Implemented a smart positioning system for ID cards. Elements in the identity and data sections now automatically "move up" to fill gaps if optional fields (like Tamil Name or Business Name) are missing or hidden, ensuring a professional look without empty spaces.
@@ -344,6 +379,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.0.0 | 2026-04-25 | Member approval workflow, status toggle, single-use PDF tokens, dual-logo headers |
 | 1.9.0 | 2026-04-24 | Dynamic stacking, multi-line row support, and missing fields fix |
 | 1.8.0 | 2026-04-24 | ID card customization UI, refined footer, standardized signature resolution |
 | 1.7.0 | 2026-04-24 | Redesigned Portrait ID Card, Association Signatures Management |
@@ -361,7 +397,8 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/your-org/fttddwa/compare/v1.9.0...v2.0.0
 [1.9.0]: https://github.com/your-org/fttddwa/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/your-org/fttddwa/compare/v1.7.0...v1.8.0
 [1.7.0]: https://github.com/your-org/fttddwa/compare/v1.6.1...v1.7.0

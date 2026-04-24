@@ -89,6 +89,8 @@ export default function EditMemberPage() {
             weddingDate: member.weddingDate ? new Date(member.weddingDate as string).toISOString().split("T")[0] : "",
             photoUrl: member.photoUrl as string || "",
             aadhaar: member.aadhaarHash as string || "",
+            businessName: member.businessName as string || "",
+            businessNameTamil: member.businessNameTamil as string || "",
           }}
           onSubmit={handleSubmit}
           loading={loading}

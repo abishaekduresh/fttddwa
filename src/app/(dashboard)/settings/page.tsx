@@ -27,6 +27,7 @@ interface IdCardSettingsValues {
   showBusinessName: boolean;
   showBusinessNameTamil: boolean;
   showJoinedAt: boolean;
+  validityYears?: number;
 }
 
 const ID_CARD_DEFAULTS: IdCardSettingsValues = {
@@ -47,6 +48,7 @@ const ID_CARD_DEFAULTS: IdCardSettingsValues = {
   showBusinessName: true,
   showBusinessNameTamil: false,
   showJoinedAt: true,
+  validityYears: 2,
 };
 
 function IdCardCustomizer({
@@ -119,29 +121,43 @@ function IdCardCustomizer({
         ))}
       </div>
 
-      {/* Card title + Footer title */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Titles & Validity */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label className="form-label text-xs">Card Title</label>
+          <label className="form-label text-xs font-semibold text-slate-600">Card Title</label>
           <input
             type="text"
             value={vals.cardTitle}
             onChange={(e) => set("cardTitle", e.target.value)}
-            className="form-input"
+            className="form-input text-sm"
             maxLength={60}
             placeholder="Member ID Card"
           />
         </div>
         <div>
-          <label className="form-label text-xs">Footer Title</label>
+          <label className="form-label text-xs font-semibold text-slate-600">Footer Title</label>
           <input
             type="text"
             value={vals.footerTitle}
             onChange={(e) => set("footerTitle", e.target.value)}
-            className="form-input"
+            className="form-input text-sm"
             maxLength={60}
             placeholder="STATE CHAIRMAN"
           />
+        </div>
+        <div>
+          <label className="form-label text-xs font-semibold text-slate-600">Validity (Years)</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={vals.validityYears || 2}
+              onChange={(e) => set("validityYears", e.target.value)}
+              className="form-input text-sm font-mono"
+            />
+            <span className="text-[10px] text-slate-400 whitespace-nowrap">years duration</span>
+          </div>
         </div>
       </div>
 

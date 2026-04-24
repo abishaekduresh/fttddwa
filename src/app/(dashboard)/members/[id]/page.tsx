@@ -165,7 +165,7 @@ export default function MemberDetailPage() {
           Back to Members
         </Link>
         <button
-          onClick={() => window.open(`/api/members/card/${member.uuid}.pdf`, "_blank")}
+          onClick={() => window.open(`/api/members/card/${member.uuid}/pdf`, "_blank")}
           className="btn btn-outline text-sm py-1.5"
         >
           <Printer size={14} /> Print ID Card

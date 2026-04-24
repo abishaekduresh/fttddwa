@@ -6,7 +6,7 @@ import { apiFetch } from "@/lib/api/client-fetch";
 import {
   Loader2, Save, RotateCcw, ArrowLeft,
   Eye, EyeOff, Type, Image as ImgIcon, Square, Minus, Rows3,
-  AlignLeft, AlignCenter, AlignRight, Bold, Trash2,
+  AlignLeft, AlignCenter, AlignRight, Bold, Trash2, Copy, QrCode,
   ChevronDown, ChevronRight, PlusCircle,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
@@ -41,6 +41,7 @@ function ElemIcon({ type }: { type: ElemType }) {
     case "rect":  return <Square  size={11} className={cls} />;
     case "line":  return <Minus   size={11} className={cls} />;
     case "row":   return <Rows3   size={11} className={cls} />;
+    case "qrcode": return <QrCode size={11} className={cls} />;
   }
 }
 
@@ -117,6 +118,19 @@ export default function IdCardDesignerPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Update preview data when settings change
+  useEffect(() => {
+    if (loading) return;
+    const startYear = new Date().getFullYear();
+    const vYears = Number(existingSettings.validityYears) || 2;
+    setPreviewData(prev => ({
+      ...prev,
+      "member.validity": `${startYear} – ${startYear + vYears}`,
+      "settings.footerTitle": (existingSettings.footerTitle as string) || PREVIEW_DATA["settings.footerTitle"],
+      "settings.cardTitle":   (existingSettings.cardTitle as string)   || PREVIEW_DATA["settings.cardTitle"],
+    }));
+  }, [existingSettings.validityYears, existingSettings.footerTitle, existingSettings.cardTitle, loading]);
 
   // ── Global drag / resize listeners ────────────────────────────────────────
   useEffect(() => {
@@ -207,6 +221,23 @@ export default function IdCardDesignerPage() {
       { duration: 6000 }
     );
   }, []);
+
+  const duplicateLayer = useCallback((id: string) => {
+    const el = elements.find(e => e.id === id);
+    if (!el) return;
+    const newId = `${el.type}-${Date.now()}`;
+    const newEl: LayoutElement = {
+      ...el,
+      id: newId,
+      label: `${el.label} (Copy)`,
+      x: Math.min(CARD_W - el.w, el.x + 10),
+      y: Math.min(CARD_H - el.h, el.y + 10),
+      zIndex: elements.reduce((max, e) => Math.max(max, e.zIndex), 0) + 1,
+    };
+    setElements(prev => [...prev, newEl]);
+    setSelected(newId);
+    toast.success(`Duplicated "${el.label}"`);
+  }, [elements]);
 
   // ── Save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
@@ -312,6 +343,8 @@ export default function IdCardDesignerPage() {
             <div style={{
               width: "100%", height: "100%", overflow: "hidden",
               borderRadius: el.shape === "circle" ? "50%" : 3,
+              boxSizing: "border-box",
+              border: el.borderWidth ? `${el.borderWidth * SCALE}px solid ${el.borderColor || "#000000"}` : undefined,
             }}>
               <img
                 src={realUrl}
@@ -333,11 +366,23 @@ export default function IdCardDesignerPage() {
             width: "100%", height: "100%",
             background: isLogo ? "rgba(255,255,255,0.18)" : isPhoto ? "#d1d5db" : "rgba(100,116,139,0.08)",
             borderRadius: el.shape === "circle" ? "50%" : 3,
-            border: "1.5px dashed rgba(100,116,139,0.4)",
+            boxSizing: "border-box",
+            border: el.borderWidth 
+              ? `${el.borderWidth * SCALE}px solid ${el.borderColor || "#000000"}` 
+              : "1.5px dashed rgba(100,116,139,0.4)",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: Math.min(el.w, el.h) * SCALE * 0.38,
           }}>
             {emoji}
+          </div>
+        );
+      }
+
+      case "qrcode": {
+        return (
+          <div className="w-full h-full bg-white flex flex-col items-center justify-center border border-slate-200">
+            <QrCode size={Math.min(el.w, el.h) * SCALE * 0.7} className="text-slate-800" />
+            <span className="text-[7px] text-slate-400 mt-0.5 uppercase font-bold">QR Code</span>
           </div>
         );
       }
@@ -437,6 +482,13 @@ export default function IdCardDesignerPage() {
                   {el.label}
                 </span>
                 <button
+                  onClick={e => { e.stopPropagation(); duplicateLayer(el.id); }}
+                  className="flex-shrink-0 text-slate-200 hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100 mr-1"
+                  title="Duplicate"
+                >
+                  <Copy size={11} />
+                </button>
+                <button
                   onClick={e => { e.stopPropagation(); removeLayer(el.id, el.label); }}
                   className="flex-shrink-0 text-slate-200 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
                   title="Remove layer"
@@ -456,6 +508,7 @@ export default function IdCardDesignerPage() {
                 { type: "rect"  as ElemType, icon: <Square size={11} />,  label: "Shape", defaults: { x: 20, y: 210, w: 220, h: 30, bgColor: "#e2e8f0", gradient: false } },
                 { type: "line"  as ElemType, icon: <Minus size={11} />,   label: "Line",  defaults: { x: 20, y: 220, w: 220, h: 1, color: "#e2e8f0" } },
                 { type: "row"   as ElemType, icon: <Rows3 size={11} />,   label: "Row",   defaults: { labelText: "Label", staticText: "Value", x: 28, y: 210, w: 204, h: 16, fontSize: 9, labelColor: "#64748b", valueColor: "#334155", valueX: 110 } },
+                { type: "qrcode" as ElemType, icon: <QrCode size={11} />, label: "QR Code",defaults: { field: "member.uuid", x: 14, y: 290, w: 60, h: 60 } },
               ] as { type: ElemType; icon: React.ReactNode; label: string; defaults: Partial<LayoutElement> }[]).map(({ type, icon, label, defaults }) => (
                 <button
                   key={type}
@@ -619,6 +672,13 @@ export default function IdCardDesignerPage() {
                   {selEl.type}
                 </span>
                 <button
+                  onClick={() => duplicateLayer(selEl.id)}
+                  className="text-slate-300 hover:text-blue-500 transition-colors"
+                  title="Duplicate layer"
+                >
+                  <Copy size={13} />
+                </button>
+                <button
                   onClick={() => removeLayer(selEl.id, selEl.label)}
                   className="text-slate-300 hover:text-red-500 transition-colors ml-1"
                   title="Remove layer"
@@ -663,29 +723,65 @@ export default function IdCardDesignerPage() {
                   </div>
                 </section>
 
-                {/* ── Text style ── */}
-                {(selEl.type === "text" || selEl.type === "row") && (
+                {/* ── Text / Data style ── */}
+                {(selEl.type === "text" || selEl.type === "row" || selEl.type === "qrcode") && (
                   <section>
                     <p className="prop-section-title">Text</p>
                     <div className="space-y-2.5">
 
+                      <label className="block">
+                        <span className="prop-label">Data Field (Binding)</span>
+                        <select
+                          value={selEl.field || ""}
+                          onChange={e => patch(selEl.id, { field: e.target.value || undefined })}
+                          className="form-input py-1 px-2 text-xs w-full mt-0.5"
+                        >
+                          <option value="">(None / Static Text)</option>
+                          <optgroup label="Member Data">
+                            <option value="member.name">Name (English)</option>
+                            <option value="member.nameTamil">Name (Tamil)</option>
+                            <option value="member.position">Position</option>
+                            <option value="member.businessName">Business Name (English)</option>
+                            <option value="member.businessNameTamil">Business Name (Tamil)</option>
+                            <option value="member.membershipId">ID Number</option>
+                            <option value="member.phone">Phone Number</option>
+                            <option value="member.address">Full Address</option>
+                            <option value="member.village">Village</option>
+                            <option value="member.taluk">Taluk</option>
+                            <option value="member.district">District</option>
+                            <option value="member.validity">Validity (2026 - 2028)</option>
+                            <option value="member.email">Email</option>
+                            <option value="member.uuid">Unique ID (UUID)</option>
+                          </optgroup>
+                          <optgroup label="Association Data">
+                            <option value="association.name">Assoc Name (English)</option>
+                            <option value="association.nameTamil">Assoc Name (Tamil)</option>
+                            <option value="association.regNumber">Registration Number</option>
+                            <option value="association.address">Assoc Address</option>
+                            <option value="association.statePhone">Assoc State/Phone</option>
+                            <option value="association.logo1Url">Logo 1 URL</option>
+                            <option value="association.logo2Url">Logo 2 URL</option>
+                            <option value="association.sigChairmanUrl">Signature URL</option>
+                          </optgroup>
+                          <optgroup label="Settings">
+                            <option value="settings.footerTitle">Footer Title</option>
+                            <option value="settings.cardTitle">Card Title</option>
+                          </optgroup>
+                        </select>
+                      </label>
+
                       {/* Custom / static text content */}
                       <label className="block">
                         <span className="prop-label">
-                          {selEl.field ? "Override Content (optional)" : "Text Content"}
+                          {selEl.field ? "Static Override (optional)" : "Text Content"}
                         </span>
                         <textarea
                           rows={2}
                           value={selEl.staticText ?? ""}
                           onChange={e => patch(selEl.id, { staticText: e.target.value || undefined })}
-                          placeholder={selEl.field ? `Leave empty to use ${selEl.field}` : "Enter text…"}
+                          placeholder={selEl.field ? "Leave empty to use data field" : "Enter text…"}
                           className="form-input py-1 px-2 text-xs w-full mt-0.5 resize-none"
                         />
-                        {selEl.field && (
-                          <p className="text-[9px] text-slate-400 mt-0.5">
-                            Bound to: <span className="font-mono">{selEl.field}</span>
-                          </p>
-                        )}
                       </label>
                       <div className="flex gap-2 items-end">
                         <label className="flex-1 block">
@@ -834,6 +930,20 @@ export default function IdCardDesignerPage() {
                         ))}
                       </div>
                     </label>
+                    <div className="space-y-2.5 mt-2.5">
+                      <label className="block">
+                        <span className="prop-label">Border Width (pt)</span>
+                        <input type="number" step="0.5" value={selEl.borderWidth || 0}
+                          onChange={e => patch(selEl.id, { borderWidth: Number(e.target.value) })}
+                          className="form-input py-1 px-2 text-xs w-full mt-0.5" />
+                      </label>
+                      <label className="block">
+                        <span className="prop-label">Border Color</span>
+                        <input type="color" value={selEl.borderColor || "#000000"}
+                          onChange={e => patch(selEl.id, { borderColor: e.target.value })}
+                          className="h-7 w-full cursor-pointer rounded border border-slate-200 p-0.5 mt-0.5" />
+                      </label>
+                    </div>
                   </section>
                 )}
 
@@ -858,10 +968,44 @@ export default function IdCardDesignerPage() {
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center px-6">
-              <Rows3 size={36} className="text-slate-200 mb-3" />
-              <p className="text-sm font-medium text-slate-400">No element selected</p>
-              <p className="text-xs text-slate-300 mt-1">Click any element on the canvas to edit its properties</p>
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                    <RotateCcw size={14} />
+                  </div>
+                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wider">Global ID Settings</p>
+                </div>
+                
+                <div className="space-y-5">
+                  <label className="block">
+                    <span className="prop-label">Validity Period (Years)</span>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <input 
+                        type="number" 
+                        min="1"
+                        max="20"
+                        value={Number(existingSettings.validityYears ?? 2)}
+                        onChange={e => setExistingSettings(prev => ({ ...prev, validityYears: Number(e.target.value) }))}
+                        className="form-input py-1.5 px-3 text-sm w-24 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 transition-all font-mono" 
+                      />
+                      <span className="text-xs text-slate-400">years from join date</span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                      Determines the "Valid Till" year on the member's card. 
+                      Example: Joined 2024 + 2 years = 2026.
+                    </p>
+                  </label>
+                </div>
+              </section>
+
+              <div className="flex flex-col items-center justify-center py-10 text-center opacity-40">
+                <Rows3 size={32} className="text-slate-300 mb-3" />
+                <p className="text-sm font-medium text-slate-400">No element selected</p>
+                <p className="text-[11px] text-slate-300 mt-1 max-w-[180px] mx-auto">
+                  Click any layer on the canvas to edit its specific colors, fonts and positions.
+                </p>
+              </div>
             </div>
           )}
         </div>

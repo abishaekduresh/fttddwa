@@ -109,6 +109,7 @@ model Member {
   photoUrl          String?      @db.VarChar(500)
   status            MemberStatus @default(ACTIVE)
   joinedAt          DateTime     @default(now())
+  validUntil        DateTime?
   createdById       Int?
   updatedById       Int?
   createdAt         DateTime     @default(now())
@@ -387,6 +388,7 @@ enum WaRecordStatus {
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum MemberStatus {
+  PENDING
   ACTIVE
   INACTIVE
   SUSPENDED

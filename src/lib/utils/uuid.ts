@@ -1,9 +1,10 @@
-import { randomUUID } from "crypto";
+import { v7 as uuidv7 } from "uuid";
 
 /**
- * Generates a standard UUID v4.
- * Uses Node.js built-in crypto — no external packages needed.
+ * Generates a UUID v7 (time-ordered).
+ * The timestamp prefix makes IDs naturally sortable by creation time,
+ * which improves database index performance for the members table.
  */
 export function generateUUID(): string {
-  return randomUUID();
+  return uuidv7();
 }
