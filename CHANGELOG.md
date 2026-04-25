@@ -17,6 +17,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
     - **Designer Properties** — Added `member.dateOfBirth` to the data-binding dropdown in the properties panel.
 
 ### Fixed
+- **Coolify Deployment (Hooks Error)** — Renamed `useServerAuth` to `getServerAuth` to resolve a React Hooks rule violation in server-side API routes that was blocking production builds.
 - **Missing PDF Fields** — Resolved an issue where Date of Birth and Business Name (Tamil) were blank in some scenarios by improving font registration and fallback data resolution in the PDF service.
 - **Designer Modal Conflict** — Fixed a z-index issue where the canvas could overlap the "Templates" modal.
 - **Layer Z-Index Cap** — Capped user-defined layer `zIndex` at 100 to prevent layout breakage while maintaining custom sorting.

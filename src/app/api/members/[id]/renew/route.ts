@@ -2,13 +2,13 @@
 import { NextRequest } from "next/server";
 import { extendMemberValidity } from "@/lib/services/member.service";
 import { ok, serverError, forbidden, notFound } from "@/lib/api/response";
-import { useServerAuth } from "@/lib/api/server-auth";
+import { getServerAuth } from "@/lib/api/server-auth";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { hasPermission } = await useServerAuth();
+  const { hasPermission } = await getServerAuth();
   if (!hasPermission("members:update")) return forbidden();
 
   const { id: idStr } = await params;

@@ -3,7 +3,7 @@ import { cookies, headers } from "next/headers";
 import { verifyAccessToken } from "@/lib/jwt";
 import type { AccessTokenPayload } from "@/lib/jwt";
 
-export async function useServerAuth() {
+export async function getServerAuth() {
   const cookieStore = await cookies();
   const headerList = await headers();
   
