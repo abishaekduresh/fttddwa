@@ -18,6 +18,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ### Fixed
 - **Coolify Deployment (Hooks Error)** — Renamed `useServerAuth` to `getServerAuth` to resolve a React Hooks rule violation in server-side API routes that was blocking production builds.
+- **Coolify Deployment (Mount Error)** — Removed `tsconfig.tsbuildinfo` from the repository and added it to `.gitignore`. This resolves a Docker mount failure where the build system tried to use that file path for a cache directory.
 - **Missing PDF Fields** — Resolved an issue where Date of Birth and Business Name (Tamil) were blank in some scenarios by improving font registration and fallback data resolution in the PDF service.
 - **Designer Modal Conflict** — Fixed a z-index issue where the canvas could overlap the "Templates" modal.
 - **Layer Z-Index Cap** — Capped user-defined layer `zIndex` at 100 to prevent layout breakage while maintaining custom sorting.
