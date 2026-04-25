@@ -55,6 +55,7 @@ export default function IdCardDesignerPage() {
   const [selected,         setSelected]        = useState<string | null>(null);
   const [primaryColor,     setPrimaryColor]    = useState("#1e293b");
   const [headerTextColor,  setHeaderTextColor] = useState("#ffffff");
+  const [footerWaveColor,  setFooterWaveColor] = useState("#2d6a4f");
   // stored so we can deep-merge on save (preserves showXxx flags etc.)
   const [existingSettings, setExistingSettings] = useState<Record<string, unknown>>({});
   // live preview data — real association values merged over PREVIEW_DATA defaults
@@ -82,6 +83,7 @@ export default function IdCardDesignerPage() {
         setExistingSettings(cs);
         if (cs.primaryColor)    setPrimaryColor(cs.primaryColor);
         if (cs.headerTextColor) setHeaderTextColor(cs.headerTextColor);
+        if (cs.footerWaveColor) setFooterWaveColor(cs.footerWaveColor);
         if (Array.isArray(cs.layout) && cs.layout.length > 0) {
           setElements(cs.layout as LayoutElement[]);
         }
@@ -247,13 +249,13 @@ export default function IdCardDesignerPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          idCardSettings: { ...existingSettings, primaryColor, headerTextColor, layout: elements },
+          idCardSettings: { ...existingSettings, primaryColor, headerTextColor, footerWaveColor, layout: elements },
         }),
       });
       const j = await res.json();
       if (j.success) {
         toast.success("Layout saved — PDF will use this design");
-        setExistingSettings(prev => ({ ...prev, primaryColor, headerTextColor, layout: elements }));
+        setExistingSettings(prev => ({ ...prev, primaryColor, headerTextColor, footerWaveColor, layout: elements }));
       } else {
         toast.error(j.message || "Save failed");
       }
@@ -270,13 +272,31 @@ export default function IdCardDesignerPage() {
     if (c === "headerText")  return headerTextColor;
     if (c === "primary")     return primaryColor;
     if (c === "primaryDark") return darkenHex(primaryColor);
+    if (c === "footerWave")  return footerWaveColor;
     return c;
-  }, [primaryColor, headerTextColor]);
+  }, [primaryColor, headerTextColor, footerWaveColor]);
 
   // ── Canvas element renderer ───────────────────────────────────────────────
   function renderOnCanvas(el: LayoutElement) {
     switch (el.type) {
       case "rect": {
+        if (el.bgColor === "footerWave") {
+          // Render convex bezier arch using SVG — matches PDF renderer geometry exactly
+          const eW = el.w * SCALE;
+          const eH = el.h * SCALE;
+          const archEdge = eH * 0.5;
+          const archPeak = eH * 0.25;
+          const cpX = eW * 0.25;
+          return (
+            <svg width={eW} height={eH} viewBox={`0 0 ${eW} ${eH}`}
+              style={{ position: "absolute", left: 0, top: 0, pointerEvents: "none" }}>
+              <path
+                d={`M 0,${archEdge} C ${cpX},${archPeak} ${eW - cpX},${archPeak} ${eW},${archEdge} L ${eW},${eH} L 0,${eH} Z`}
+                fill={footerWaveColor}
+              />
+            </svg>
+          );
+        }
         const bg = el.gradient
           ? `linear-gradient(135deg, ${rc(el.bgColor)}, ${darkenHex(rc(el.bgColor) || primaryColor, 50)})`
           : rc(el.bgColor) || "#e2e8f0";
@@ -429,6 +449,12 @@ export default function IdCardDesignerPage() {
             Text
             <input type="color" value={headerTextColor}
               onChange={e => setHeaderTextColor(e.target.value)}
+              className="h-6 w-8 cursor-pointer rounded border border-slate-200 p-0.5" />
+          </label>
+          <label className="flex items-center gap-1.5">
+            Wave
+            <input type="color" value={footerWaveColor}
+              onChange={e => setFooterWaveColor(e.target.value)}
               className="h-6 w-8 cursor-pointer rounded border border-slate-200 p-0.5" />
           </label>
         </div>

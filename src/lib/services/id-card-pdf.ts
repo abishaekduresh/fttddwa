@@ -4,7 +4,7 @@ import path from "path";
 import QRCode from "qrcode";
 import { getMemberCardByUuid } from "@/lib/services/member.service";
 import { prisma } from "@/lib/prisma";
-import type { LayoutElement } from "@/lib/id-card-layout";
+import { DEFAULT_LAYOUT, type LayoutElement } from "@/lib/id-card-layout";
 
 const TAMIL_FONT_PATH = path.join(process.cwd(), "public", "fonts", "NotoSansTamil.ttf");
 
@@ -17,12 +17,14 @@ async function renderFromLayout(
   PRIMARY: string,
   PRIMARY_DARK: string,
   HDR_TEXT: string,
+  FOOTER_WAVE = "#2d6a4f",
 ) {
   const rc = (c?: string) => {
     if (!c) return "#000000";
     if (c === "headerText")  return HDR_TEXT;
     if (c === "primary")     return PRIMARY;
     if (c === "primaryDark") return PRIMARY_DARK;
+    if (c === "footerWave")  return FOOTER_WAVE;
     return c;
   };
 
@@ -79,7 +81,21 @@ async function renderFromLayout(
 
       case "rect": {
         const currentY = el.stackGroup ? applyStack(el) : el.y;
-        if (el.gradient || el.bgColor === "primary" || el.bgColor === "primaryDark") {
+        if (el.bgColor === "footerWave") {
+          // Convex bezier arch — top edge curves upward (toward card top) in the middle.
+          // Arch edge (at card sides) ≈ y + h*0.5 ; Arch peak (center) ≈ y + h*0.25
+          const archEdgeY = currentY + el.h * 0.5;
+          const archPeakY = currentY + el.h * 0.25;
+          const cpX = el.w * 0.25;
+          doc.save()
+             .moveTo(el.x, archEdgeY)
+             .bezierCurveTo(el.x + cpX, archPeakY, el.x + el.w - cpX, archPeakY, el.x + el.w, archEdgeY)
+             .lineTo(el.x + el.w, currentY + el.h)
+             .lineTo(el.x, currentY + el.h)
+             .closePath()
+             .fill(FOOTER_WAVE);
+          doc.restore();
+        } else if (el.gradient || el.bgColor === "primary" || el.bgColor === "primaryDark") {
           const base = rc(el.bgColor);
           const g = doc.linearGradient(el.x, currentY, el.x + el.w, currentY + el.h);
           g.stop(0, base).stop(1, PRIMARY_DARK);
@@ -212,12 +228,12 @@ async function renderFromLayout(
   }
 }
 
-function fmtDate(d: string | Date | null): string {
+/** Format date as DD.MM.YYYY (physical card style). */
+function fmtDOB(d: Date | string | null): string {
   if (!d) return "";
   try {
-    return new Date(d).toLocaleDateString("en-IN", {
-      day: "2-digit", month: "short", year: "numeric",
-    });
+    const dt = new Date(d);
+    return `${dt.getDate().toString().padStart(2, "0")}.${(dt.getMonth() + 1).toString().padStart(2, "0")}.${dt.getFullYear()}`;
   } catch { return ""; }
 }
 
@@ -289,10 +305,11 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     showPhone:             (cs.showPhone             as boolean) ?? true,
     showEmail:             (cs.showEmail             as boolean) ?? false,
     showAddress:           (cs.showAddress           as boolean) ?? true,
-    showDateOfBirth:       (cs.showDateOfBirth       as boolean) ?? false,
+    showDateOfBirth:       (cs.showDateOfBirth       as boolean) ?? true,
     showBusinessName:      (cs.showBusinessName      as boolean) ?? true,
     showBusinessNameTamil: (cs.showBusinessNameTamil as boolean) ?? true,
     showJoinedAt:          (cs.showJoinedAt          as boolean) ?? true,
+    footerWaveColor:       (cs.footerWaveColor        as string)  || "#2d6a4f",
   };
 
   const PRIMARY      = s.primaryColor;
@@ -344,6 +361,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
       "member.location":          [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", "),
       "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (cs.validityYears || 2))}`,
       "member.email":             memberRow.email || "",
+      "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth),
       "member.address":           memberRow.address || "",
       "address":                  memberRow.address || "",
       "association.name":         setting?.name     || "",
@@ -360,184 +378,71 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
       "member.photoUrl":           photoBuf,
       "association.sigChairmanUrl": sigBuf,
     };
-    await renderFromLayout(doc, cs.layout as LayoutElement[], pdfData, pdfImages, PRIMARY, PRIMARY_DARK, HDR_TEXT);
+    await renderFromLayout(doc, cs.layout as LayoutElement[], pdfData, pdfImages, PRIMARY, PRIMARY_DARK, HDR_TEXT, s.footerWaveColor);
     doc.end();
     await pdfDone;
     return Buffer.concat(chunks);
   }
 
-  // ── Fallback: hardcoded layout (used when no designer layout is saved) ─────
-  const COLOR_SLATE9 = "#0f172a";
-  const COLOR_SLATE7 = "#334155";
-  const COLOR_SLATE5 = "#64748b";
-  const COLOR_SLATE2 = "#e2e8f0";
-  const COLOR_GOLD   = "#b45309";  // Amber-700 (readable on white)
-  const COLOR_PINK   = "#be185d";  // Pink-700
-
-  // ── 1. Header background gradient ─────────────────────────────────────────
-  const HEADER_H = 100;
-  const grad = doc.linearGradient(0, 0, W, HEADER_H);
-  grad.stop(0, PRIMARY).stop(1, PRIMARY_DARK);
-  doc.rect(0, 0, W, HEADER_H).fill(grad);
-
-  // Thin bottom stripe of header
-  doc.rect(0, HEADER_H, W, 3).fill(PRIMARY_DARK);
-
-  // ── 2. Logos ──────────────────────────────────────────────────────────────
-  const LOGO_SIZE = 42;
-  const LOGO_Y    = 12;
-
-  if (logo1Buf) {
-    try { doc.image(logo1Buf, 14, LOGO_Y, { width: LOGO_SIZE, height: LOGO_SIZE }); } catch {}
-  }
-  if (logo2Buf) {
-    try { doc.image(logo2Buf, W - LOGO_SIZE - 14, LOGO_Y, { width: LOGO_SIZE, height: LOGO_SIZE }); } catch {}
-  }
-
-  // ── 3. Association Name & Details in header ────────────────────────────────
-  const textAreaX = 14 + LOGO_SIZE + 6;
-  const textAreaW = W - (14 + LOGO_SIZE + 6) * 2;
-
-  doc.fillColor(HDR_TEXT).font("Helvetica-Bold").fontSize(9.5)
-     .text((setting?.name || "Association").toUpperCase(), textAreaX, LOGO_Y + 2, {
-       width: textAreaW, align: "center", lineGap: 1.5,
-     });
-
-  let hdY = LOGO_Y + 2 + doc.fontSize(9.5).heightOfString(
-    (setting?.name || "Association").toUpperCase(),
-    { width: textAreaW }
-  ) + 3;
-
-  if (setting?.regNumber) {
-    doc.font("Helvetica").fontSize(7).fillColor(HDR_TEXT)
-       .text(`Reg. No: ${setting.regNumber}`, textAreaX, hdY, { width: textAreaW, align: "center" });
-    hdY += 10;
-  }
-  if (setting?.address) {
-    doc.font("Helvetica").fontSize(7).fillColor(HDR_TEXT)
-       .text(setting.address, textAreaX, hdY, { width: textAreaW, align: "center" });
-    hdY += 10;
-  }
-  if (setting?.state || setting?.phone) {
-    const line = [setting?.state, setting?.phone ? `Cell: ${setting.phone}` : ""].filter(Boolean).join(" | ");
-    doc.font("Helvetica").fontSize(7).fillColor(HDR_TEXT)
-       .text(line, textAreaX, hdY, { width: textAreaW, align: "center" });
-  }
-
-  // ── 4. Identity section ────────────────────────────────────────────────────
-  const PHOTO_X = 14, PHOTO_Y = HEADER_H + 14;
-  const PHOTO_W = 78, PHOTO_H = 96;
-
-  // Photo border
-  doc.save();
-  doc.rect(PHOTO_X, PHOTO_Y, PHOTO_W, PHOTO_H).lineWidth(1.5).strokeColor(PRIMARY).stroke();
-
-  if (photoBuf) {
-    try {
-      doc.rect(PHOTO_X + 2, PHOTO_Y + 2, PHOTO_W - 4, PHOTO_H - 4).clip();
-      doc.image(photoBuf, PHOTO_X + 2, PHOTO_Y + 2, {
-        width: PHOTO_W - 4, height: PHOTO_H - 4, cover: [PHOTO_W - 4, PHOTO_H - 4],
-      });
-    } catch {
-      doc.rect(PHOTO_X + 2, PHOTO_Y + 2, PHOTO_W - 4, PHOTO_H - 4).fill("#f1f5f9");
-    }
-  } else {
-    doc.rect(PHOTO_X + 2, PHOTO_Y + 2, PHOTO_W - 4, PHOTO_H - 4).fill("#f1f5f9");
-    doc.fillColor("#94a3b8").font("Helvetica").fontSize(7.5)
-       .text("NO PHOTO", PHOTO_X, PHOTO_Y + PHOTO_H / 2 - 5, { width: PHOTO_W, align: "center" });
-  }
-  doc.restore();
-
-  // Name & Position
-  const NX = PHOTO_X + PHOTO_W + 10;
-  const NW = W - NX - 14;
-  let ny = PHOTO_Y + 10;
-
-  if (s.showName) {
-    doc.fillColor(COLOR_SLATE9).font("Helvetica-Bold").fontSize(12)
-       .text(memberRow.name.toUpperCase(), NX, ny, { width: NW });
-    ny += doc.fontSize(12).heightOfString(memberRow.name.toUpperCase(), { width: NW }) + 4;
-  }
-
-  if (s.showNameTamil && memberRow.nameTamil) {
-    doc.fillColor(COLOR_SLATE7).font("Tamil").fontSize(9)
-       .text(memberRow.nameTamil, NX, ny, { width: NW });
-    ny += 13;
-  }
-
-  if (s.showPosition && memberRow.position) {
-    doc.fillColor(COLOR_GOLD).font("Helvetica-Bold").fontSize(9)
-       .text(memberRow.position.toUpperCase(), NX, ny, { width: NW });
-    ny += 13;
-  }
-
-  if (s.showBusinessName && memberRow.businessName) {
-    doc.fillColor(COLOR_PINK).font("Helvetica-Bold").fontSize(8.5)
-       .text(memberRow.businessName.toUpperCase(), NX, ny, { width: NW });
-    ny += 12;
-  }
-
-  if (s.showBusinessNameTamil && memberRow.businessNameTamil) {
-    doc.fillColor(COLOR_SLATE7).font("Tamil").fontSize(8.5)
-       .text(memberRow.businessNameTamil, NX, ny, { width: NW });
-    ny += 12;
-  }
-
-  if (s.showAddress) {
-    const loc = [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", ");
-    if (loc) {
-      doc.fillColor("#2563eb").font("Helvetica").fontSize(7.5)
-         .text(loc, NX, ny, { width: NW });
-    }
-  }
-
-  // ── 5. Divider ─────────────────────────────────────────────────────────────
-  let cy = PHOTO_Y + PHOTO_H + 14;
-  doc.moveTo(20, cy).lineTo(W - 20, cy).lineWidth(0.5).strokeColor(COLOR_SLATE2).stroke();
-  cy += 12;
-
-  // ── 6. Data rows ───────────────────────────────────────────────────────────
-  const LX = 28, VX = 110;
-  const ROW_H = 16;
-  doc.fontSize(9);
-
-  const drawRow = (label: string, value: string, isId = false) => {
-    doc.fillColor(COLOR_SLATE5).font("Helvetica").text(label, LX, cy, { width: VX - LX - 4 });
-    doc.fillColor(isId ? PRIMARY : COLOR_SLATE7).font("Helvetica-Bold").text(value, VX, cy, { width: W - VX - 20 });
-    cy += ROW_H;
+  // ── Fallback: use DEFAULT_LAYOUT (respects same showXxx settings as custom layout) ──
+  const startYr = new Date(memberRow.joinedAt).getFullYear();
+  const fallbackData: Record<string, string> = {
+    "member.uuid":              memberRow.uuid,
+    "uuid":                     memberRow.uuid,
+    "member.name":              memberRow.name,
+    "member.nameTamil":         memberRow.nameTamil         || "",
+    "member.position":          memberRow.position          || "",
+    "member.businessName":      memberRow.businessName      || "",
+    "member.businessNameTamil": memberRow.businessNameTamil || "",
+    "businessName":             memberRow.businessName      || "",
+    "businessNameTamil":        memberRow.businessNameTamil || "",
+    "member.industry":          memberRow.industry          || "",
+    "member.village":           memberRow.village           || "",
+    "village":                  memberRow.village           || "",
+    "member.phone":             memberRow.phone,
+    "phone":                    memberRow.phone,
+    "member.membershipId":      memberRow.membershipId,
+    "membershipId":             memberRow.membershipId,
+    "member.location":          [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", "),
+    "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (cs.validityYears || 2))}`,
+    "member.email":             memberRow.email || "",
+    "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth),
+    "member.address":           memberRow.address || "",
+    "address":                  memberRow.address || "",
+    "association.name":         setting?.name     || "",
+    "association.nameTamil":    setting?.nameTamil || "",
+    "association.regNumber":    setting?.regNumber ? `பதிவு எண்: ${setting.regNumber}` : "",
+    "association.address":      setting?.address  || "",
+    "association.statePhone":   [setting?.state, setting?.phone ? `Cell: ${setting.phone}` : ""].filter(Boolean).join(" | "),
+    "settings.footerTitle":     s.footerTitle,
+    "settings.cardTitle":       s.cardTitle,
+  };
+  const fallbackImages: Record<string, Buffer | null> = {
+    "association.logo1Url":       logo1Buf,
+    "association.logo2Url":       logo2Buf,
+    "member.photoUrl":            photoBuf,
+    "association.sigChairmanUrl": sigBuf,
   };
 
-  if (s.showPhone) drawRow("Cell No", memberRow.phone);
-  if (s.showJoinedAt) {
-    const yr = new Date(memberRow.joinedAt).getFullYear();
-    drawRow("Validity", `${yr} – ${yr + 2}`);
-  }
-  if (s.showMembershipId) drawRow("ID Number", memberRow.membershipId, true);
-  if (s.showDateOfBirth && memberRow.dateOfBirth) drawRow("Date of Birth", fmtDate(memberRow.dateOfBirth));
-  if (s.showEmail && memberRow.email) drawRow("Email", memberRow.email);
+  // Apply showXxx setting flags as visibility overrides on the DEFAULT_LAYOUT
+  const visOverrides: Record<string, boolean> = {
+    "photo":             s.showPhoto,
+    "member-name":       s.showName,
+    "member-name-tamil": s.showNameTamil,
+    "position":          s.showPosition,
+    "biz-name-tamil":    s.showBusinessNameTamil,
+    "biz-name-en":       s.showBusinessName,
+    "member-village":    s.showAddress,
+    "row-phone":         s.showPhone,
+    "row-dob":           s.showDateOfBirth,
+    "row-validity":      s.showJoinedAt,
+    "row-id":            s.showMembershipId,
+  };
+  const fallbackLayout = DEFAULT_LAYOUT.map(el =>
+    visOverrides[el.id] !== undefined ? { ...el, visible: visOverrides[el.id] } : el
+  );
 
-  // ── 7. Signature ───────────────────────────────────────────────────────────
-  const FOOTER_H = 38;
-  const FOOTER_Y = H - FOOTER_H;
-
-  if (sigBuf) {
-    try {
-      const SIG_W = 65, SIG_H = 28;
-      const SIG_X = W - SIG_W - 18;
-      const SIG_Y = FOOTER_Y - SIG_H - 4;
-      doc.image(sigBuf, SIG_X, SIG_Y, { width: SIG_W, height: SIG_H, fit: [SIG_W, SIG_H] });
-      doc.fillColor(COLOR_PINK).font("Helvetica-Bold").fontSize(7.5)
-         .text(s.footerTitle.toUpperCase(), SIG_X - 5, FOOTER_Y - 11, { width: SIG_W + 10, align: "center" });
-    } catch {}
-  }
-
-  // ── 8. Footer bar ──────────────────────────────────────────────────────────
-  const footerGrad = doc.linearGradient(0, FOOTER_Y, W, FOOTER_Y + FOOTER_H);
-  footerGrad.stop(0, PRIMARY).stop(1, PRIMARY_DARK);
-  doc.rect(0, FOOTER_Y, W, FOOTER_H).fill(footerGrad);
-
-  doc.fillColor(HDR_TEXT).font("Helvetica-Bold").fontSize(10)
-     .text(s.footerTitle.toUpperCase(), 0, FOOTER_Y + 14, { width: W, align: "center", characterSpacing: 1.5 });
+  await renderFromLayout(doc, fallbackLayout, fallbackData, fallbackImages, PRIMARY, PRIMARY_DARK, HDR_TEXT, s.footerWaveColor);
 
   doc.end();
   await pdfDone;
