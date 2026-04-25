@@ -175,25 +175,6 @@ Add an HTTP Request node in n8n scheduled at **09:00 IST (03:30 UTC)** daily.
 
 ---
 
-## Docker Deployment
-
-```bash
-# Copy and configure environment
-cp .env.example .env
-# Edit .env with your production secrets
-
-# Start all services (MySQL + App + Nginx)
-docker compose up -d
-
-# Run migrations and seed inside the container
-docker compose exec app npx prisma migrate deploy
-docker compose exec app npm run db:seed
-```
-
-Access at:
-- **Web App**: [http://localhost](http://localhost)
-- **phpMyAdmin**: [http://localhost:8081](http://localhost:8081)
-
 ---
 
 ## Production Deployment (VPS / Panel with PM2)

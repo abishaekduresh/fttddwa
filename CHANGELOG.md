@@ -21,6 +21,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 - **Designer Modal Conflict** — Fixed a z-index issue where the canvas could overlap the "Templates" modal.
 - **Layer Z-Index Cap** — Capped user-defined layer `zIndex` at 100 to prevent layout breakage while maintaining custom sorting.
 
+### Removed
+- **Docker Infrastructure** — Deleted `Dockerfile`, `docker-compose.yml`, `.dockerignore`, and the `docker/` configuration directory to streamline the project for standard Node.js/PM2 deployments.
+- **Docker Documentation** — Cleaned up `README.md` and `SETUP.md` to remove Docker-specific instructions.
+
 ---
 
 ## [2.2.1] — 2026-04-25

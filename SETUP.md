@@ -115,32 +115,6 @@ The system deducts 1 credit per message sent. Credit tracking is automated, and 
 
 ---
 
-## Docker Deployment
-
-### 1. Configure environment
-```bash
-cp .env.example .env
-# Edit .env with production values
-```
-
-### 2. Start all services
-```bash
-docker compose up -d
-```
-
-### 3. Run migrations
-```bash
-docker compose exec app npx prisma migrate deploy
-docker compose exec app npm run db:seed
-```
-
-### 4. Access the application
-- App: http://localhost
-- DB: localhost:3306
-- phpMyAdmin: http://localhost:8081
-
----
-
 ## Production Deployment (Standard VPS / Panel)
 
 If you are deploying on a VPS (like Ubuntu/CentOS) or using a server panel (aPanel/BT.cn), use this flow:
@@ -186,47 +160,6 @@ Select `ecosystem.config.js` as the project's startup script in the **PM2 Projec
 >    npm install
 >    ```
 > 3. **Binary Paths**: All build scripts in `package.json` now use `npx` to ensure they can find local binaries (like `tsc` and `prisma`) even if they aren't in your global `PATH`.
-
----
-
-## Production Deployment (VPS / Portainer)
-
-### Environment Variables Required
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | MySQL connection string |
-| `JWT_SECRET` | Min 32 chars, random string |
-| `JWT_REFRESH_SECRET` | Min 32 chars, random string |
-| `ENCRYPTION_KEY` | Exactly 32 chars for AES-256 |
-| `NEXT_PUBLIC_APP_URL` | Your domain (https://...) |
-
-### Generate secure secrets:
-```bash
-# Linux/Mac
-openssl rand -base64 32
-# Or Node.js
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-### SSL / HTTPS
-1. Place SSL certificates in `docker/nginx/ssl/`
-2. Uncomment the HTTPS redirect in `docker/nginx/default.conf`
-3. Add SSL server block
-
-### Nginx SSL config snippet:
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name yourdomain.com;
-
-    ssl_certificate /etc/nginx/ssl/cert.pem;
-    ssl_certificate_key /etc/nginx/ssl/key.pem;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-
-    # ... rest of config
-}
-```
 
 ---
 
