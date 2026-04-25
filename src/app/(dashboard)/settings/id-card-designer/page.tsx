@@ -7,8 +7,18 @@ import {
   Loader2, Save, RotateCcw, ArrowLeft,
   Eye, EyeOff, Type, Image as ImgIcon, Square, Minus, Rows3,
   AlignLeft, AlignCenter, AlignRight, Bold, Trash2, Copy, QrCode,
-  ChevronDown, ChevronRight, PlusCircle,
+  ChevronDown, ChevronRight, PlusCircle, LayoutTemplate, Star, FolderOpen,
 } from "lucide-react";
+
+interface IdCardTemplate {
+  id: string;
+  name: string;
+  primaryColor: string;
+  headerTextColor: string;
+  footerWaveColor: string;
+  layout: LayoutElement[];
+  createdAt: string;
+}
 import toast, { Toaster } from "react-hot-toast";
 import {
   DEFAULT_LAYOUT, PREVIEW_DATA,
@@ -58,6 +68,12 @@ export default function IdCardDesignerPage() {
   const [footerWaveColor,  setFooterWaveColor] = useState("#2d6a4f");
   // stored so we can deep-merge on save (preserves showXxx flags etc.)
   const [existingSettings, setExistingSettings] = useState<Record<string, unknown>>({});
+  // ── Templates ─────────────────────────────────────────────────────────────
+  const [templates,          setTemplates]         = useState<IdCardTemplate[]>([]);
+  const [activeTemplateId,   setActiveTemplateId]  = useState<string | null>(null);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [newTemplateName,    setNewTemplateName]   = useState("");
+  const [savingTemplate,     setSavingTemplate]    = useState(false);
   // live preview data — real association values merged over PREVIEW_DATA defaults
   const [previewData,   setPreviewData]   = useState<Record<string, string>>(PREVIEW_DATA);
   // real image URLs for canvas preview
@@ -84,6 +100,8 @@ export default function IdCardDesignerPage() {
         if (cs.primaryColor)    setPrimaryColor(cs.primaryColor);
         if (cs.headerTextColor) setHeaderTextColor(cs.headerTextColor);
         if (cs.footerWaveColor) setFooterWaveColor(cs.footerWaveColor);
+        if (Array.isArray(cs.templates))  setTemplates(cs.templates as IdCardTemplate[]);
+        if (cs.activeTemplateId)          setActiveTemplateId(cs.activeTemplateId as string);
         if (Array.isArray(cs.layout) && cs.layout.length > 0) {
           setElements(cs.layout as LayoutElement[]);
         }
@@ -249,13 +267,13 @@ export default function IdCardDesignerPage() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          idCardSettings: { ...existingSettings, primaryColor, headerTextColor, footerWaveColor, layout: elements },
+          idCardSettings: { ...existingSettings, primaryColor, headerTextColor, footerWaveColor, layout: elements, templates, activeTemplateId },
         }),
       });
       const j = await res.json();
       if (j.success) {
-        toast.success("Layout saved — PDF will use this design");
-        setExistingSettings(prev => ({ ...prev, primaryColor, headerTextColor, footerWaveColor, layout: elements }));
+        toast.success(activeTemplateId ? "Layout saved (template is primary — PDF uses the template)" : "Layout saved — PDF will use this design");
+        setExistingSettings(prev => ({ ...prev, primaryColor, headerTextColor, footerWaveColor, layout: elements, templates, activeTemplateId }));
       } else {
         toast.error(j.message || "Save failed");
       }
@@ -265,6 +283,80 @@ export default function IdCardDesignerPage() {
       setSaving(false);
     }
   };
+
+  // ── Template helpers ──────────────────────────────────────────────────────
+  const persistTplSettings = useCallback(async (newTpls: IdCardTemplate[], newActiveId: string | null) => {
+    const res = await apiFetch("/api/settings/app/update", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        idCardSettings: { ...existingSettings, primaryColor, headerTextColor, footerWaveColor, layout: elements, templates: newTpls, activeTemplateId: newActiveId },
+      }),
+    });
+    const j = await res.json();
+    if (!j.success) throw new Error(j.message || "Save failed");
+    setExistingSettings(prev => ({ ...prev, templates: newTpls, activeTemplateId: newActiveId }));
+  }, [existingSettings, primaryColor, headerTextColor, footerWaveColor, elements]);
+
+  const saveAsTemplate = useCallback(async () => {
+    const name = newTemplateName.trim();
+    if (!name) return toast.error("Enter a template name");
+    setSavingTemplate(true);
+    try {
+      const newTpl: IdCardTemplate = {
+        id: `tpl-${Date.now()}`,
+        name,
+        primaryColor,
+        headerTextColor,
+        footerWaveColor,
+        layout: elements,
+        createdAt: new Date().toISOString(),
+      };
+      const updated = [...templates, newTpl];
+      await persistTplSettings(updated, activeTemplateId);
+      setTemplates(updated);
+      setNewTemplateName("");
+      toast.success(`Template "${name}" saved`);
+    } catch {
+      toast.error("Failed to save template");
+    } finally {
+      setSavingTemplate(false);
+    }
+  }, [newTemplateName, primaryColor, headerTextColor, footerWaveColor, elements, templates, activeTemplateId, persistTplSettings]);
+
+  const loadTemplate = useCallback((tpl: IdCardTemplate) => {
+    setElements(tpl.layout);
+    setPrimaryColor(tpl.primaryColor);
+    setHeaderTextColor(tpl.headerTextColor);
+    setFooterWaveColor(tpl.footerWaveColor);
+    setSelected(null);
+    setShowTemplatesModal(false);
+    toast.success(`"${tpl.name}" loaded into workspace`);
+  }, []);
+
+  const togglePrimaryTpl = useCallback(async (id: string) => {
+    const newId = activeTemplateId === id ? null : id;
+    try {
+      await persistTplSettings(templates, newId);
+      setActiveTemplateId(newId);
+      toast.success(newId ? "Set as primary — PDF will use this template" : "Primary cleared");
+    } catch {
+      toast.error("Failed to update primary");
+    }
+  }, [activeTemplateId, templates, persistTplSettings]);
+
+  const deleteTpl = useCallback(async (id: string, name: string) => {
+    const updated = templates.filter(t => t.id !== id);
+    const newActive = activeTemplateId === id ? null : activeTemplateId;
+    try {
+      await persistTplSettings(updated, newActive);
+      setTemplates(updated);
+      if (activeTemplateId === id) setActiveTemplateId(null);
+      toast.success(`"${name}" deleted`);
+    } catch {
+      toast.error("Failed to delete template");
+    }
+  }, [templates, activeTemplateId, persistTplSettings]);
 
   // ── Color resolver ────────────────────────────────────────────────────────
   const rc = useCallback((c?: string) => {
@@ -459,6 +551,21 @@ export default function IdCardDesignerPage() {
           </label>
         </div>
 
+        <button
+          onClick={() => setShowTemplatesModal(true)}
+          className="btn btn-outline text-xs flex items-center gap-1.5 py-1.5 relative"
+        >
+          <LayoutTemplate size={13} />
+          Templates
+          {templates.length > 0 && (
+            <span className="ml-0.5 text-[9px] font-bold bg-slate-100 text-slate-500 rounded-full px-1.5 py-0.5 leading-none">
+              {templates.length}
+            </span>
+          )}
+          {activeTemplateId && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-400 border border-white" />
+          )}
+        </button>
         <button
           onClick={() => { setElements(DEFAULT_LAYOUT); toast.success("Reset to default layout"); }}
           className="btn btn-outline text-xs flex items-center gap-1.5 py-1.5"
@@ -1037,6 +1144,125 @@ export default function IdCardDesignerPage() {
         </div>
 
       </div>
+
+      {/* ── Templates Modal ─────────────────────────────────────────────── */}
+      {showTemplatesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowTemplatesModal(false)}>
+          <div className="bg-white rounded-xl shadow-2xl w-[520px] max-h-[80vh] flex flex-col overflow-hidden border border-slate-200" onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <LayoutTemplate size={16} className="text-primary" />
+                <h2 className="text-sm font-semibold text-slate-800">Design Templates</h2>
+                {activeTemplateId && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold uppercase tracking-wide">
+                    1 active
+                  </span>
+                )}
+              </div>
+              <button onClick={() => setShowTemplatesModal(false)} className="text-slate-400 hover:text-slate-700 text-lg leading-none">✕</button>
+            </div>
+
+            {/* Save current as template */}
+            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50 flex-shrink-0">
+              <p className="text-xs font-medium text-slate-600 mb-2">Save current workspace as a new template</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newTemplateName}
+                  onChange={e => setNewTemplateName(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && saveAsTemplate()}
+                  placeholder="Template name (e.g. Classic, Modern)"
+                  className="flex-1 form-input text-sm py-1.5"
+                  maxLength={60}
+                />
+                <button
+                  onClick={saveAsTemplate}
+                  disabled={savingTemplate || !newTemplateName.trim()}
+                  className="btn btn-primary text-xs px-3 flex items-center gap-1.5 flex-shrink-0"
+                >
+                  {savingTemplate ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                  Save
+                </button>
+              </div>
+            </div>
+
+            {/* Template list */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+              {templates.length === 0 ? (
+                <div className="py-14 text-center">
+                  <LayoutTemplate size={28} className="mx-auto text-slate-200 mb-2" />
+                  <p className="text-xs text-slate-400">No templates saved yet.</p>
+                  <p className="text-[11px] text-slate-300 mt-1">Save your current design above to create the first template.</p>
+                </div>
+              ) : (
+                [...templates].reverse().map(tpl => {
+                  const isPrimary = tpl.id === activeTemplateId;
+                  return (
+                    <div key={tpl.id} className={`flex items-center gap-3 px-5 py-3.5 transition-colors ${isPrimary ? "bg-amber-50/60" : "hover:bg-slate-50"}`}>
+                      {/* Color swatches */}
+                      <div className="flex gap-0.5 flex-shrink-0">
+                        <div className="w-4 h-10 rounded-sm" style={{ background: tpl.primaryColor }} title="Header color" />
+                        <div className="w-2 h-10 rounded-sm" style={{ background: tpl.footerWaveColor }} title="Wave color" />
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-slate-800 truncate">{tpl.name}</span>
+                          {isPrimary && (
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold uppercase tracking-wide flex-shrink-0">
+                              Primary
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {new Date(tpl.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                          &ensp;·&ensp;{tpl.layout.length} layers
+                        </p>
+                      </div>
+                      {/* Actions */}
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => loadTemplate(tpl)}
+                          title="Load into workspace"
+                          className="p-1.5 rounded hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
+                        >
+                          <FolderOpen size={14} />
+                        </button>
+                        <button
+                          onClick={() => togglePrimaryTpl(tpl.id)}
+                          title={isPrimary ? "Clear primary (PDF will use direct layout)" : "Set as primary (PDF will use this template)"}
+                          className={`p-1.5 rounded transition-colors ${isPrimary ? "text-amber-500 hover:text-slate-400 hover:bg-slate-100" : "text-slate-300 hover:text-amber-500 hover:bg-amber-50"}`}
+                        >
+                          <Star size={14} className={isPrimary ? "fill-amber-400" : ""} />
+                        </button>
+                        <button
+                          onClick={() => deleteTpl(tpl.id, tpl.name)}
+                          title="Delete template"
+                          className="p-1.5 rounded hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex-shrink-0">
+              <p className="text-[10px] text-slate-400 leading-relaxed">
+                <Star size={9} className="inline mr-1 text-amber-400 fill-amber-400" />
+                <strong>Primary</strong> template is used by the PDF generator.&ensp;
+                <FolderOpen size={9} className="inline mr-1 text-slate-400" />
+                <strong>Load</strong> copies a template into your workspace for editing.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @font-face {

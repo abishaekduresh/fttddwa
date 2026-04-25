@@ -312,9 +312,25 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     footerWaveColor:       (cs.footerWaveColor        as string)  || "#2d6a4f",
   };
 
-  const PRIMARY      = s.primaryColor;
+  // Resolve active template — overrides direct layout and colors when set
+  let activeLayout: LayoutElement[] | null = null;
+  let activePrimary    = s.primaryColor;
+  let activeHdrText    = s.headerTextColor;
+  let activeWaveColor  = s.footerWaveColor;
+
+  if (cs.activeTemplateId && Array.isArray(cs.templates)) {
+    const tpl = (cs.templates as Record<string, unknown>[]).find(t => t.id === cs.activeTemplateId);
+    if (tpl && Array.isArray(tpl.layout) && (tpl.layout as unknown[]).length > 0) {
+      activeLayout    = tpl.layout as LayoutElement[];
+      if (tpl.primaryColor)    activePrimary   = tpl.primaryColor    as string;
+      if (tpl.headerTextColor) activeHdrText   = tpl.headerTextColor as string;
+      if (tpl.footerWaveColor) activeWaveColor = tpl.footerWaveColor as string;
+    }
+  }
+
+  const PRIMARY      = activePrimary;
   const PRIMARY_DARK = darkenHex(PRIMARY, 40);
-  const HDR_TEXT     = s.headerTextColor;
+  const HDR_TEXT     = activeHdrText;
 
   // 3. Fetch images
   const [logo1Buf, logo2Buf, photoBuf, sigBuf] = await Promise.all([
@@ -338,8 +354,12 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
   // Register Tamil Unicode font
   doc.registerFont("Tamil", TAMIL_FONT_PATH);
 
-  // ── If a custom layout was saved by the designer, use it ──────────────────
-  if (Array.isArray(cs.layout) && cs.layout.length > 0) {
+  // ── Render custom layout (active template takes priority, then direct layout) ──
+  // activeLayout is set when a template is marked as primary; otherwise fall through
+  // to the direct cs.layout or DEFAULT_LAYOUT fallback.
+  const customLayout = activeLayout ?? (Array.isArray(cs.layout) && cs.layout.length > 0 ? cs.layout as LayoutElement[] : null);
+
+  if (customLayout) {
     const startYr = new Date(memberRow.joinedAt).getFullYear();
     const pdfData: Record<string, string> = {
       "member.uuid":              memberRow.uuid,
@@ -378,7 +398,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
       "member.photoUrl":           photoBuf,
       "association.sigChairmanUrl": sigBuf,
     };
-    await renderFromLayout(doc, cs.layout as LayoutElement[], pdfData, pdfImages, PRIMARY, PRIMARY_DARK, HDR_TEXT, s.footerWaveColor);
+    await renderFromLayout(doc, customLayout, pdfData, pdfImages, PRIMARY, PRIMARY_DARK, HDR_TEXT, activeWaveColor);
     doc.end();
     await pdfDone;
     return Buffer.concat(chunks);
@@ -442,7 +462,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     visOverrides[el.id] !== undefined ? { ...el, visible: visOverrides[el.id] } : el
   );
 
-  await renderFromLayout(doc, fallbackLayout, fallbackData, fallbackImages, PRIMARY, PRIMARY_DARK, HDR_TEXT, s.footerWaveColor);
+  await renderFromLayout(doc, fallbackLayout, fallbackData, fallbackImages, PRIMARY, PRIMARY_DARK, HDR_TEXT, activeWaveColor);
 
   doc.end();
   await pdfDone;
