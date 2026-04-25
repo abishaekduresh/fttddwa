@@ -99,9 +99,9 @@ async function renderFromLayout(
           const base = rc(el.bgColor);
           const g = doc.linearGradient(el.x, currentY, el.x + el.w, currentY + el.h);
           g.stop(0, base).stop(1, PRIMARY_DARK);
-          doc.rect(el.x, currentY, el.w, el.h).fill(g);
+          doc.roundedRect(el.x, currentY, el.w, el.h, el.borderRadius || 0).fill(g);
         } else {
-          doc.rect(el.x, currentY, el.w, el.h).fill(rc(el.bgColor) || "#f0f0f0");
+          doc.roundedRect(el.x, currentY, el.w, el.h, el.borderRadius || 0).fill(rc(el.bgColor) || "#f0f0f0");
         }
         if (el.stackGroup) commitStack(el, currentY, el.h);
         break;
@@ -170,11 +170,23 @@ async function renderFromLayout(
           doc.save();
           if (el.shape === "circle") {
             const cx = el.x + el.w / 2, cy = currentY + el.h / 2, r = Math.min(el.w, el.h) / 2;
-            doc.circle(cx, cy, r).clip();
+            doc.circle(cx, cy, r);
           } else {
-            doc.rect(el.x, currentY, el.w, el.h).clip();
+            doc.rect(el.x, currentY, el.w, el.h);
           }
-          doc.image(buf, el.x, currentY, { width: el.w, height: el.h, cover: [el.w, el.h] });
+          if (el.bgColor) {
+            doc.fill(rc(el.bgColor));
+            // re-path for clipping after fill
+            if (el.shape === "circle") {
+              const cx = el.x + el.w / 2, cy = currentY + el.h / 2, r = Math.min(el.w, el.h) / 2;
+              doc.circle(cx, cy, r);
+            } else {
+              doc.rect(el.x, currentY, el.w, el.h);
+            }
+          }
+          doc.clip();
+          const p = el.padding || 0;
+          doc.image(buf, el.x + p, currentY + p, { width: el.w - p * 2, height: el.h - p * 2, cover: [el.w - p * 2, el.h - p * 2] });
           doc.restore();
 
           // Draw border if requested (after restore so it's not clipped/obscured)
@@ -365,12 +377,12 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
       "member.uuid":              memberRow.uuid,
       "uuid":                     memberRow.uuid,
       "member.name":              memberRow.name,
-      "member.nameTamil":         memberRow.nameTamil         || "",
+      "member.nameTamil":         memberRow.nameTamil         || "பெயர் இல்லை",
       "member.position":          memberRow.position          || "",
       "member.businessName":      memberRow.businessName      || "",
-      "member.businessNameTamil": memberRow.businessNameTamil || "",
+      "member.businessNameTamil": memberRow.businessNameTamil || "தமிழ் வணிகப் பெயர்",
       "businessName":             memberRow.businessName      || "",
-      "businessNameTamil":        memberRow.businessNameTamil || "",
+      "businessNameTamil":        memberRow.businessNameTamil || "தமிழ் வணிகப் பெயர்",
       "member.industry":          memberRow.industry          || "",
       "member.village":           memberRow.village           || "",
       "village":                  memberRow.village           || "",
@@ -381,7 +393,10 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
       "member.location":          [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", "),
       "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (cs.validityYears || 2))}`,
       "member.email":             memberRow.email || "",
-      "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth),
+      "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth) || "01.01.1990",
+      "member.dob":               fmtDOB(memberRow.dateOfBirth),
+      "dateOfBirth":              fmtDOB(memberRow.dateOfBirth),
+      "dob":                      fmtDOB(memberRow.dateOfBirth),
       "member.address":           memberRow.address || "",
       "address":                  memberRow.address || "",
       "association.name":         setting?.name     || "",
@@ -410,12 +425,12 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     "member.uuid":              memberRow.uuid,
     "uuid":                     memberRow.uuid,
     "member.name":              memberRow.name,
-    "member.nameTamil":         memberRow.nameTamil         || "",
+    "member.nameTamil":         memberRow.nameTamil         || "பெயர் இல்லை",
     "member.position":          memberRow.position          || "",
     "member.businessName":      memberRow.businessName      || "",
-    "member.businessNameTamil": memberRow.businessNameTamil || "",
+    "member.businessNameTamil": memberRow.businessNameTamil || "தமிழ் வணிகப் பெயர்",
     "businessName":             memberRow.businessName      || "",
-    "businessNameTamil":        memberRow.businessNameTamil || "",
+    "businessNameTamil":        memberRow.businessNameTamil || "தமிழ் வணிகப் பெயர்",
     "member.industry":          memberRow.industry          || "",
     "member.village":           memberRow.village           || "",
     "village":                  memberRow.village           || "",
@@ -426,7 +441,10 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     "member.location":          [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", "),
     "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (cs.validityYears || 2))}`,
     "member.email":             memberRow.email || "",
-    "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth),
+    "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth) || "01.01.1990",
+    "member.dob":               fmtDOB(memberRow.dateOfBirth),
+    "dateOfBirth":              fmtDOB(memberRow.dateOfBirth),
+    "dob":                      fmtDOB(memberRow.dateOfBirth),
     "member.address":           memberRow.address || "",
     "address":                  memberRow.address || "",
     "association.name":         setting?.name     || "",

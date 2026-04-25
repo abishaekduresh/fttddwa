@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 2.2.1** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
+> **Version 2.2.2** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
 
 ---
 
@@ -396,7 +396,7 @@ Before going to production:
 ## Future Roadmap
 
 - [x] ID card generation with single-use PDF token (membership card PDF)
-- [ ] QR code embed on ID card for offline verification
+- [x] QR code embed on ID card for offline verification
 - [ ] SMS/Email notification system (OTP, renewal alerts)
 - [ ] Payment integration (annual membership fee)
 - [ ] Multi-tenant support (district-wise admin login)

@@ -32,10 +32,12 @@ export interface LayoutElement {
   bgColor?: string;      // hex, or "primary" | "primaryDark" | "footerWave"
   gradient?: boolean;
   opacity?: number;
+  borderRadius?: number; // pt
   // ── image ──
   shape?: "rect" | "circle";
   borderColor?: string;
   borderWidth?: number;
+  padding?: number;      // image padding (pt)
   stackGroup?: string;   // elements with same group will stack vertically if one is empty/hidden
   minY?: number;         // stacking floor — element will never render above this Y (PDF pt)
 }
@@ -99,8 +101,8 @@ export const DEFAULT_LAYOUT: LayoutElement[] = [
   // ── Data Section (light-blue background) ──────────────────────────────────
   { id: "data-bg",           label: "Data Section Background",   type: "rect",   x: 0,   y: 278, w: 260, h: 80,  visible: true,  zIndex: 0, bgColor: "#eef4ff"  },
   { id: "row-phone",         label: "Cell Phone",                type: "row",    field: "member.phone",               x: 20,  y: 284, w: 220, h: 16,  visible: true,  zIndex: 3, fontSize: 9,   fontBold: true,  labelText: "Cell  :",  labelColor: "#475569", valueColor: "#1e293b", valueX: 96 },
-  { id: "row-dob",           label: "Date of Birth",             type: "row",    field: "member.dateOfBirth",         x: 20,  y: 300, w: 220, h: 16,  visible: true,  zIndex: 3, fontSize: 9,   fontBold: true,  labelText: "DOB   :",  labelColor: "#475569", valueColor: "#1e293b", valueX: 96 },
-  { id: "row-validity",      label: "Validity",                  type: "row",    field: "member.validity",            x: 20,  y: 316, w: 220, h: 16,  visible: true,  zIndex: 3, fontSize: 9,   fontBold: true,  labelText: "Valid  :", labelColor: "#475569", valueColor: "#1e293b", valueX: 96 },
+  { id: "row-dob",           label: "Date of Birth",             type: "text",   field: "member.dateOfBirth",         x: 96,  y: 300, w: 144, h: 16,  visible: true,  zIndex: 3, fontSize: 9,   fontBold: true,  color: "#1e293b", align: "left" },
+  { id: "row-validity",      label: "Validity",                  type: "text",   field: "member.validity",            x: 96,  y: 316, w: 144, h: 16,  visible: true,  zIndex: 3, fontSize: 9,   fontBold: true,  color: "#1e293b", align: "left" },
   { id: "row-id",            label: "Membership ID",             type: "row",    field: "member.membershipId",        x: 20,  y: 332, w: 220, h: 16,  visible: true,  zIndex: 3, fontSize: 9,   fontBold: true,  labelText: "ID. No.:", labelColor: "#475569", valueColor: "primary", valueX: 96 },
 
   // ── Footer Wave Arch ──────────────────────────────────────────────────────

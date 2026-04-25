@@ -6,18 +6,24 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
-## [2.2.1] — 2026-04-25
+## [2.2.2] — 2026-04-26
+
+### Added
+- **ID Card Designer Enhancements** — Major updates to the layout engine and designer UI:
+    - **Image Padding** — Added support for `padding` on image layers (Photo, Logos), allowing for breathing room within borders.
+    - **Image Background Color** — Image layers now support a custom `bgColor` behind the image, perfect for transparent logos or signatures.
+    - **Rectangle Border Radius** — Added `borderRadius` support for `rect` shapes, enabling modern rounded-corner designs.
+    - **Improved Field Mapping** — Added data aliases for Date of Birth (`dob`, `dateOfBirth`) to ensure reliable data resolution.
+    - **Designer Properties** — Added `member.dateOfBirth` to the data-binding dropdown in the properties panel.
 
 ### Fixed
-- **Coolify Deployment Error** — Resolved a critical `Module not found` error during production build by creating the missing `server-auth.ts` utility.
-- **Next.js 15 Async Params** — Updated route handlers (specifically member renewal) to correctly `await` the `params` object as required by Next.js 15.
-- **TypeScript `NextResponse` Body Fix** — Resolved a type error in PDF generation routes where a Node.js `Buffer` was passed instead of a `Uint8Array`.
-- **ESLint Script Errors** — Fixed a `require-imports` linting error in utility scripts that was blocking production builds.
-
-### Changed
-- **`tsconfig.json` Optimization** — Added `baseUrl: "."` to improve module resolution and path alias reliability in IDEs and build environments.
+- **Missing PDF Fields** — Resolved an issue where Date of Birth and Business Name (Tamil) were blank in some scenarios by improving font registration and fallback data resolution in the PDF service.
+- **Designer Modal Conflict** — Fixed a z-index issue where the canvas could overlap the "Templates" modal.
+- **Layer Z-Index Cap** — Capped user-defined layer `zIndex` at 100 to prevent layout breakage while maintaining custom sorting.
 
 ---
+
+## [2.2.1] — 2026-04-25
 
 ## [2.2.0] — 2026-04-25
 
@@ -437,6 +443,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.2.2 | 2026-04-26 | ID card designer enhancements (padding, background, border-radius) |
 | 2.2.1 | 2026-04-25 | Coolify deployment fix, Next.js 15 async params, and TS type fixes |
 | 2.2.0 | 2026-04-25 | Home page animation overhaul, Tamil Quick Access, return-URL flow |
 | 2.1.0 | 2026-04-25 | Public home page with association branding and quick-access cards |

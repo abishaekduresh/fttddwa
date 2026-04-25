@@ -392,7 +392,7 @@ export default function IdCardDesignerPage() {
         const bg = el.gradient
           ? `linear-gradient(135deg, ${rc(el.bgColor)}, ${darkenHex(rc(el.bgColor) || primaryColor, 50)})`
           : rc(el.bgColor) || "#e2e8f0";
-        return <div style={{ width: "100%", height: "100%", background: bg, opacity: el.opacity ?? 1 }} />;
+        return <div style={{ width: "100%", height: "100%", background: bg, opacity: el.opacity ?? 1, borderRadius: (el.borderRadius || 0) * SCALE }} />;
       }
 
       case "line":
@@ -457,6 +457,8 @@ export default function IdCardDesignerPage() {
               borderRadius: el.shape === "circle" ? "50%" : 3,
               boxSizing: "border-box",
               border: el.borderWidth ? `${el.borderWidth * SCALE}px solid ${el.borderColor || "#000000"}` : undefined,
+              padding: (el.padding || 0) * SCALE,
+              backgroundColor: rc(el.bgColor) || "transparent",
             }}>
               <img
                 src={realUrl}
@@ -476,12 +478,13 @@ export default function IdCardDesignerPage() {
         return (
           <div style={{
             width: "100%", height: "100%",
-            background: isLogo ? "rgba(255,255,255,0.18)" : isPhoto ? "#d1d5db" : "rgba(100,116,139,0.08)",
+            background: rc(el.bgColor) || (isLogo ? "rgba(255,255,255,0.18)" : isPhoto ? "#d1d5db" : "rgba(100,116,139,0.08)"),
             borderRadius: el.shape === "circle" ? "50%" : 3,
             boxSizing: "border-box",
             border: el.borderWidth 
               ? `${el.borderWidth * SCALE}px solid ${el.borderColor || "#000000"}` 
               : "1.5px dashed rgba(100,116,139,0.4)",
+            padding: (el.padding || 0) * SCALE,
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: Math.min(el.w, el.h) * SCALE * 0.38,
           }}>
@@ -844,7 +847,8 @@ export default function IdCardDesignerPage() {
                     <label className="flex-1 block">
                       <span className="prop-label">Z-Index</span>
                       <input type="number" value={selEl.zIndex}
-                        onChange={e => patch(selEl.id, { zIndex: Number(e.target.value) })}
+                        onChange={e => patch(selEl.id, { zIndex: Math.min(100, Number(e.target.value)) })}
+                        max={100}
                         className="form-input py-1 px-2 text-xs font-mono w-full mt-0.5" />
                     </label>
                     <label className="flex items-center gap-1.5 text-xs text-slate-600 pb-1.5 cursor-pointer">
@@ -878,6 +882,7 @@ export default function IdCardDesignerPage() {
                             <option value="member.businessNameTamil">Business Name (Tamil)</option>
                             <option value="member.membershipId">ID Number</option>
                             <option value="member.phone">Phone Number</option>
+                            <option value="member.dateOfBirth">Date of Birth</option>
                             <option value="member.address">Full Address</option>
                             <option value="member.village">Village</option>
                             <option value="member.taluk">Taluk</option>
@@ -1035,12 +1040,20 @@ export default function IdCardDesignerPage() {
                         </div>
                         <p className="text-[9px] text-slate-400 mt-0.5">Keywords: primary · primaryDark</p>
                       </label>
-                      <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-                        <input type="checkbox" checked={!!selEl.gradient}
-                          onChange={e => patch(selEl.id, { gradient: e.target.checked })}
-                          className="rounded border-slate-300" />
-                        Gradient effect
-                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                          <input type="checkbox" checked={!!selEl.gradient}
+                            onChange={e => patch(selEl.id, { gradient: e.target.checked })}
+                            className="rounded border-slate-300" />
+                          Gradient
+                        </label>
+                        <label className="block">
+                          <span className="prop-label">Radius (pt)</span>
+                          <input type="number" step="0.5" value={selEl.borderRadius || 0}
+                            onChange={e => patch(selEl.id, { borderRadius: Number(e.target.value) })}
+                            className="form-input py-1 px-2 text-xs w-full mt-0.5" />
+                        </label>
+                      </div>
                     </div>
                   </section>
                 )}
@@ -1064,17 +1077,38 @@ export default function IdCardDesignerPage() {
                       </div>
                     </label>
                     <div className="space-y-2.5 mt-2.5">
-                      <label className="block">
-                        <span className="prop-label">Border Width (pt)</span>
-                        <input type="number" step="0.5" value={selEl.borderWidth || 0}
-                          onChange={e => patch(selEl.id, { borderWidth: Number(e.target.value) })}
-                          className="form-input py-1 px-2 text-xs w-full mt-0.5" />
-                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block">
+                          <span className="prop-label">Border Width (pt)</span>
+                          <input type="number" step="0.5" value={selEl.borderWidth || 0}
+                            onChange={e => patch(selEl.id, { borderWidth: Number(e.target.value) })}
+                            className="form-input py-1 px-2 text-xs w-full mt-0.5" />
+                        </label>
+                        <label className="block">
+                          <span className="prop-label">Padding (pt)</span>
+                          <input type="number" step="0.5" value={selEl.padding || 0}
+                            onChange={e => patch(selEl.id, { padding: Number(e.target.value) })}
+                            className="form-input py-1 px-2 text-xs w-full mt-0.5" />
+                        </label>
+                      </div>
                       <label className="block">
                         <span className="prop-label">Border Color</span>
                         <input type="color" value={selEl.borderColor || "#000000"}
                           onChange={e => patch(selEl.id, { borderColor: e.target.value })}
                           className="h-7 w-full cursor-pointer rounded border border-slate-200 p-0.5 mt-0.5" />
+                      </label>
+                      <label className="block">
+                        <span className="prop-label">Background Color</span>
+                        <div className="flex gap-1 mt-0.5">
+                          <input type="color"
+                            value={selEl.bgColor?.startsWith("#") ? selEl.bgColor : "#ffffff"}
+                            onChange={e => patch(selEl.id, { bgColor: e.target.value })}
+                            className="h-7 w-8 cursor-pointer rounded border border-slate-200 p-0.5 flex-shrink-0" />
+                          <input type="text" value={selEl.bgColor || ""}
+                            onChange={e => patch(selEl.id, { bgColor: e.target.value })}
+                            placeholder="hex / primary / transparent"
+                            className="form-input py-1 px-2 text-xs flex-1 font-mono" />
+                        </div>
                       </label>
                     </div>
                   </section>
@@ -1147,7 +1181,7 @@ export default function IdCardDesignerPage() {
 
       {/* ── Templates Modal ─────────────────────────────────────────────── */}
       {showTemplatesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowTemplatesModal(false)}>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm" style={{ zIndex: 100000 }} onClick={() => setShowTemplatesModal(false)}>
           <div className="bg-white rounded-xl shadow-2xl w-[520px] max-h-[80vh] flex flex-col overflow-hidden border border-slate-200" onClick={e => e.stopPropagation()}>
 
             {/* Header */}
