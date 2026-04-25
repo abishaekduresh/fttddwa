@@ -274,14 +274,14 @@ export async function getMemberCardByUuid(uuid: string): Promise<MemberCardRow |
       phone: true, email: true, photoUrl: true, status: true,
       industry: true, validUntil: true,
       dateOfBirth: true, weddingDate: true, joinedAt: true,
-    },
+    } as any,
   });
   return row as MemberCardRow | null;
 }
 
 export async function extendMemberValidity(id: number, years?: number) {
   const [member, setting] = await Promise.all([
-    prisma.member.findUnique({ where: { id }, select: { validUntil: true } }),
+    prisma.member.findUnique({ where: { id }, select: { validUntil: true } } as any),
     prisma.associationSetting.findUnique({ where: { id: 1 }, select: { idCardSettings: true } })
   ]);
 
@@ -306,6 +306,6 @@ export async function extendMemberValidity(id: number, years?: number) {
     data: { 
       validUntil: newValidUntil,
       status: MemberStatus.ACTIVE
-    }
+    } as any
   });
 }

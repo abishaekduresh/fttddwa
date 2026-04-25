@@ -6,12 +6,13 @@ import { useServerAuth } from "@/lib/api/server-auth";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { hasPermission } = await useServerAuth();
   if (!hasPermission("members:update")) return forbidden();
 
-  const id = parseInt(params.id);
+  const { id: idStr } = await params;
+  const id = parseInt(idStr);
   if (isNaN(id)) return notFound();
 
   try {

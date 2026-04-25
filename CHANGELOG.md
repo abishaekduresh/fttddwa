@@ -6,6 +6,19 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [2.2.1] — 2026-04-25
+
+### Fixed
+- **Coolify Deployment Error** — Resolved a critical `Module not found` error during production build by creating the missing `server-auth.ts` utility.
+- **Next.js 15 Async Params** — Updated route handlers (specifically member renewal) to correctly `await` the `params` object as required by Next.js 15.
+- **TypeScript `NextResponse` Body Fix** — Resolved a type error in PDF generation routes where a Node.js `Buffer` was passed instead of a `Uint8Array`.
+- **ESLint Script Errors** — Fixed a `require-imports` linting error in utility scripts that was blocking production builds.
+
+### Changed
+- **`tsconfig.json` Optimization** — Added `baseUrl: "."` to improve module resolution and path alias reliability in IDEs and build environments.
+
+---
+
 ## [2.2.0] — 2026-04-25
 
 ### Added
@@ -424,6 +437,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.2.1 | 2026-04-25 | Coolify deployment fix, Next.js 15 async params, and TS type fixes |
 | 2.2.0 | 2026-04-25 | Home page animation overhaul, Tamil Quick Access, return-URL flow |
 | 2.1.0 | 2026-04-25 | Public home page with association branding and quick-access cards |
 | 2.0.0 | 2026-04-25 | Member approval workflow, status toggle, single-use PDF tokens, dual-logo headers |
@@ -444,7 +458,8 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/your-org/fttddwa/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/your-org/fttddwa/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/your-org/fttddwa/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/your-org/fttddwa/compare/v1.9.0...v2.0.0
