@@ -11,8 +11,8 @@ import { AssociationSettingsForm } from "@/components/settings/association-setti
 
 interface IdCardSettingsValues {
   primaryColor: string;
-  secondaryColor: string;
   headerTextColor: string;
+  footerWaveColor: string;
   cardTitle: string;
   footerTitle: string;
   showPhoto: boolean;
@@ -31,22 +31,22 @@ interface IdCardSettingsValues {
 }
 
 const ID_CARD_DEFAULTS: IdCardSettingsValues = {
-  primaryColor: "#1e40af",
-  secondaryColor: "#ffffff",
+  primaryColor: "#1e293b",
   headerTextColor: "#ffffff",
-  cardTitle: "Member ID Card",
+  footerWaveColor: "#2d6a4f",
+  cardTitle: "MEMBER ID CARD",
   footerTitle: "STATE CHAIRMAN",
   showPhoto: true,
   showName: true,
-  showNameTamil: false,
+  showNameTamil: true,
   showMembershipId: true,
   showPosition: true,
   showPhone: true,
   showEmail: false,
   showAddress: true,
-  showDateOfBirth: false,
+  showDateOfBirth: true,
   showBusinessName: true,
-  showBusinessNameTamil: false,
+  showBusinessNameTamil: true,
   showJoinedAt: true,
   validityYears: 2,
 };
@@ -99,7 +99,7 @@ function IdCardCustomizer({
 
       {/* Colors */}
       <div className="grid grid-cols-3 gap-4">
-        {([ ["primaryColor", "Header Color"], ["secondaryColor", "Card Background"], ["headerTextColor", "Header Text"] ] as [keyof IdCardSettingsValues, string][]).map(([key, label]) => (
+        {([ ["primaryColor", "Header / Name Bar"], ["headerTextColor", "Header Text"], ["footerWaveColor", "Footer Wave"] ] as [keyof IdCardSettingsValues, string][]).map(([key, label]) => (
           <div key={key}>
             <label className="block text-xs font-medium text-slate-700 mb-1.5">{label}</label>
             <div className="flex items-center gap-2">
