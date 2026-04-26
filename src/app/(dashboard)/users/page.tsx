@@ -8,7 +8,7 @@ import { formatDate, formatDateTime } from "@/lib/utils/format";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { canManageRole, getRoleWeight } from "@/lib/security/hierarchy";
+import { canManageRole } from "@/lib/security/hierarchy";
 
 interface User {
   id: number;
@@ -143,7 +143,7 @@ export default function UsersPage() {
     else toast.error(json.message || "Failed to update status");
   };
 
-  const userActions = (user: User, compact = false) => {
+  const userActions = (user: User) => {
     const { user: currentUser } = useAuthStore.getState();
     const canManage = currentUser ? canManageRole(currentUser.role, user.role.name) : false;
     const isSelf = currentUser?.id === user.id;
@@ -272,7 +272,7 @@ export default function UsersPage() {
                     <p className="text-xs text-slate-400 truncate">{user.email}</p>
                   </div>
                 </div>
-                {userActions(user, true)}
+                {userActions(user)}
               </div>
 
               {/* Middle row: badges */}

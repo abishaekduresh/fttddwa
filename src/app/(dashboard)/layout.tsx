@@ -7,7 +7,6 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { useAuthStore } from "@/store/auth.store";
 import toast from "react-hot-toast";
-import { apiFetch } from "@/lib/api/client-fetch";
 
 const REFRESH_INTERVAL_MS = 12 * 60 * 1000;   // 12 minutes
 const IDLE_THRESHOLD_MS   = 10 * 60 * 1000;   // 10 minutes — skip refresh if idle longer
@@ -97,7 +96,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }, REFRESH_INTERVAL_MS);
 
     return () => clearInterval(refreshInterval);
-  }, []);
+  }, [router, setUser]);
 
   if (loading) {
     return (

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createMember, getMembers, parseMemberUniqueError } from "@/lib/services/member.service";
 import { createMemberSchema } from "@/lib/validation/member.schema";
-import { ok, created, error, forbidden, serverError, paginatedOk } from "@/lib/api/response";
+import { created, error, forbidden, serverError, paginatedOk } from "@/lib/api/response";
 import { createAuditLog } from "@/lib/services/audit.service";
 import { getPaginationParams, buildPaginationResult } from "@/lib/utils/pagination";
 import { getClientIp } from "@/lib/security/rate-limiter";

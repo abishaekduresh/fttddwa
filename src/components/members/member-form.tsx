@@ -4,12 +4,12 @@ import { apiFetch } from "@/lib/api/client-fetch";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Upload, X, User, Wand2, ExternalLink } from "lucide-react";
+import { Loader2, X, User, Wand2, ExternalLink } from "lucide-react";
 import { useState, useRef } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { createMemberSchema, type CreateMemberInput } from "@/lib/validation/member.schema";
-import { TAMIL_NADU_DISTRICTS, STATE_CONFIG } from "@/constants/districts";
+import { STATE_CONFIG } from "@/constants/districts";
 import { ASSOCIATION_POSITIONS } from "@/constants";
 import { translateToTamil } from "@/lib/utils/translation";
 
@@ -89,7 +89,7 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
     try {
       const tamilText = await translateToTamil(text);
       if (tamilText) {
-        setValue(targetField as any, tamilText, { shouldDirty: true });
+        setValue(targetField as "nameTamil" | "businessNameTamil", tamilText, { shouldDirty: true });
         toast.success("Translated to Tamil");
       } else {
         toast.error("Translation failed. Try manual tool.");
@@ -113,7 +113,7 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
     }
 
     // 2. Validate Minimum Resolution
-    const img = new (window as any).Image();
+    const img = new (window as typeof window).Image();
     const _URL = window.URL || window.webkitURL;
     img.src = _URL.createObjectURL(file);
 
@@ -174,9 +174,11 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
           >
             {photoUrl ? (
               <div className="relative">
-                <img
+                <Image
                   src={photoUrl}
                   alt="Member photo"
+                  width={128}
+                  height={164}
                   className="w-32 h-[164px] object-cover rounded-lg mx-auto shadow-md border border-slate-200"
                 />
                 <button

@@ -26,7 +26,7 @@ export default function EditMemberPage() {
       })
       .catch(() => router.push("/members"))
       .finally(() => setFetching(false));
-  }, [params.id]);
+  }, [params.id, router]);
 
   const handleSubmit = async (data: CreateMemberInput & { photoUrl?: string }) => {
     setLoading(true);

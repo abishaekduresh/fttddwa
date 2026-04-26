@@ -8,6 +8,7 @@ import { Eye, EyeOff, Loader2, Lock, User, Building2, SlidersHorizontal, PenLine
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { AssociationSettingsForm } from "@/components/settings/association-settings-form";
+import type { AssociationSettingsInput } from "@/lib/validation/association.schema";
 
 interface IdCardSettingsValues {
   primaryColor: string;
@@ -199,7 +200,7 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
-  const [assocSettings, setAssocSettings] = useState<any>(null);
+  const [assocSettings, setAssocSettings] = useState<AssociationSettingsInput | null>(null);
   const [loadingAssoc, setLoadingAssoc] = useState(false);
   const [appSettings, setAppSettings] = useState<{
     enableMemberRegistration: boolean;
@@ -349,7 +350,7 @@ export default function SettingsPage() {
         {tabs.map((t) => (
           <button
             key={t.key}
-            onClick={() => setTab(t.key as any)}
+            onClick={() => setTab(t.key as typeof tab)}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
               tab === t.key
                 ? "border-primary text-primary"
@@ -506,7 +507,7 @@ export default function SettingsPage() {
           {/* ID Card Customization */}
           {appSettings && (
             <IdCardCustomizer
-              settings={appSettings.idCardSettings as any}
+              settings={appSettings.idCardSettings as Partial<IdCardSettingsValues>}
               saving={savingIdCard}
               onSave={(s) => handleSaveIdCardSettings({ idCardSettings: s })}
             />

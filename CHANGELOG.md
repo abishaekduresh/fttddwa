@@ -6,6 +6,20 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [2.2.3] — 2026-04-26
+
+### Fixed
+- **Production Build Errors** — Resolved critical errors blocking the production build:
+    - Fixed unescaped entities (`"` and `'`) in the **ID Card Designer** JSX.
+    - Resolved TypeScript type mismatches in **Member Form** and **Settings Page**.
+- **React Hook Warnings** — Corrected missing dependency warnings (`router`, `setUser`, `nextPath`) in `useEffect` hooks across multiple dashboard pages.
+- **Linting & Code Quality** — Addressed over 50 linting warnings including unused variables, unused imports, and non-explicit `any` types.
+
+### Changed
+- **Image Optimization** — Migrated legacy `<img>` tags to the Next.js `<Image />` component for better performance and LCP optimization in the Login, Member Details, and Sidebar components.
+
+---
+
 ## [2.2.2] — 2026-04-26
 
 ### Added
@@ -449,6 +463,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.2.3 | 2026-04-26 | Production build fixes and linting cleanup |
 | 2.2.2 | 2026-04-26 | ID card designer enhancements (padding, background, border-radius) |
 | 2.2.1 | 2026-04-25 | Coolify deployment fix, Next.js 15 async params, and TS type fixes |
 | 2.2.0 | 2026-04-25 | Home page animation overhaul, Tamil Quick Access, return-URL flow |
@@ -471,8 +486,9 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.2.1...HEAD
-[2.2.1]: https://github.com/your-org/fttddwa/compare/v2.2.0...v2.2.1
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.2.3...HEAD
+[2.2.3]: https://github.com/your-org/fttddwa/compare/v2.2.2...v2.2.3
+[2.2.2]: https://github.com/your-org/fttddwa/compare/v2.2.1...v2.2.2
 [2.2.0]: https://github.com/your-org/fttddwa/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/your-org/fttddwa/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/your-org/fttddwa/compare/v1.9.0...v2.0.0

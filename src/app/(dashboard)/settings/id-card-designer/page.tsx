@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { apiFetch } from "@/lib/api/client-fetch";
 import {
   Loader2, Save, RotateCcw, ArrowLeft,
@@ -108,7 +109,6 @@ export default function IdCardDesignerPage() {
 
         // ── Association data → live preview ──
         const a = assocJson.data ?? {};
-        const startYear = new Date().getFullYear();
 
         const live: Record<string, string> = {
           ...PREVIEW_DATA,
@@ -460,12 +460,13 @@ export default function IdCardDesignerPage() {
               padding: (el.padding || 0) * SCALE,
               backgroundColor: rc(el.bgColor) || "transparent",
             }}>
-              <img
+              <Image
                 src={realUrl}
                 alt={el.label}
+                width={el.w * SCALE}
+                height={el.h * SCALE}
+                className={isSig ? "object-contain" : "object-cover"}
                 style={{
-                  width: "100%", height: "100%",
-                  objectFit: isSig ? "contain" : "cover",
                   display: "block",
                 }}
               />
@@ -1159,7 +1160,7 @@ export default function IdCardDesignerPage() {
                       <span className="text-xs text-slate-400">years from join date</span>
                     </div>
                     <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
-                      Determines the "Valid Till" year on the member's card. 
+                      Determines the &quot;Valid Till&quot; year on the member&apos;s card. 
                       Example: Joined 2024 + 2 years = 2026.
                     </p>
                   </label>

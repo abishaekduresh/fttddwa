@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 import {
   LayoutDashboard, Users, UserCheck, Shield,
   ClipboardList, FileDown, Settings, ChevronLeft, ChevronRight,
@@ -77,7 +78,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { hasPermission } = useAuthStore();
-  const { settings, loading } = useAssociation();
+  const { settings } = useAssociation();
 
   const visibleItems = navItems.filter(
     (item) => !item.permission || hasPermission(item.permission)
@@ -100,7 +101,7 @@ export function Sidebar({ isOpen, onToggle }: SidebarProps) {
         <div className="flex items-center gap-3 overflow-hidden flex-1">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 overflow-hidden">
             {settings?.logo1Url ? (
-              <img src={settings.logo1Url} alt="Logo" className="w-full h-full object-cover" />
+              <Image src={settings.logo1Url} alt="Logo" width={32} height={32} className="w-full h-full object-cover" />
             ) : (
               <Building2 size={16} className="text-white" />
             )}

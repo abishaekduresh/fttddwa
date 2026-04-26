@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -79,7 +80,7 @@ function LoginForm() {
       }
     }
     checkSession();
-  }, [router, setUser]);
+  }, [router, setUser, nextPath]);
 
   const {
     register,
@@ -145,7 +146,7 @@ function LoginForm() {
     <>
       <div className="flex items-center gap-3 mb-6">
         {settings?.logo1Url ? (
-          <img src={settings.logo1Url} alt="Logo" className="h-14 w-14 object-contain flex-shrink-0" />
+          <Image src={settings.logo1Url} alt="Logo" width={56} height={56} className="h-14 w-14 object-contain flex-shrink-0" />
         ) : (
           <div className="h-14 w-14 flex-shrink-0" />
         )}
@@ -163,7 +164,7 @@ function LoginForm() {
           </p>
         </div>
         {settings?.logo2Url ? (
-          <img src={settings.logo2Url} alt="Logo 2" className="h-14 w-14 object-contain flex-shrink-0" />
+          <Image src={settings.logo2Url} alt="Logo 2" width={56} height={56} className="h-14 w-14 object-contain flex-shrink-0" />
         ) : (
           <div className="h-14 w-14 flex-shrink-0" />
         )}

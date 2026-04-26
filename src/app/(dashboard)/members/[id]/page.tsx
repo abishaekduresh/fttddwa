@@ -5,7 +5,8 @@ import { apiFetch } from "@/lib/api/client-fetch";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Printer, User, Phone, Mail, MapPin, Building2, Cake, Heart, CreditCard, Home, Bell, BellOff } from "lucide-react";
+import { ArrowLeft, Printer, User, Phone, Mail, MapPin, Building2, Cake, Heart, CreditCard, Home, Bell } from "lucide-react";
+import Image from "next/image";
 import { formatDate, calculateAge } from "@/lib/utils/format";
 import toast from "react-hot-toast";
 
@@ -86,7 +87,7 @@ export default function MemberDetailPage() {
       })
       .catch(() => router.push("/members"))
       .finally(() => setLoading(false));
-  }, [params.id]);
+  }, [params.id, router]);
 
   useEffect(() => {
     if (!params.id) return;
@@ -179,9 +180,11 @@ export default function MemberDetailPage() {
           {/* Photo */}
           <div className="mb-4 relative">
             {member.photoUrl ? (
-              <img
+              <Image
                 src={member.photoUrl}
                 alt={member.name}
+                width={96}
+                height={96}
                 className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-md"
               />
             ) : (

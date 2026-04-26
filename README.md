@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 2.2.2** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
+> **Version 2.2.3** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
 
 ---
 
