@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFile } from "fs/promises";
 import path from "path";
+import { getUploadsDir } from "@/lib/utils/storage";
 
 const MIME_TYPES: Record<string, string> = {
   jpg: "image/jpeg",
@@ -15,13 +16,13 @@ type Ctx = { params: Promise<{ path: string[] }> };
 export async function GET(_req: NextRequest, { params }: Ctx) {
   try {
     const { path: segments } = await params;
+    const uploadsRoot = getUploadsDir();
 
     // Prevent path traversal attacks
     const safePath = segments.map((s) => path.basename(s)).join(path.sep);
-    const filePath = path.join(process.cwd(), "uploads", safePath);
+    const filePath = path.resolve(uploadsRoot, safePath);
 
     // Only allow files inside the uploads directory
-    const uploadsRoot = path.join(process.cwd(), "uploads");
     if (!filePath.startsWith(uploadsRoot)) {
       return new NextResponse(null, { status: 403 });
     }

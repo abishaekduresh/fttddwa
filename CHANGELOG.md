@@ -6,6 +6,25 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) an
 
 ---
 
+## [2.3.0] — 2026-04-26
+
+### Added
+- **Environment-Aware Storage** — Implemented a centralized storage management system that automatically selects the best path for the environment:
+    - **Production**: Defaults to `/app/persist/uploads` (optimized for Docker/Coolify persistent volumes).
+    - **Development**: Defaults to the `uploads/` folder in the project root.
+    - **Override**: Both can be overridden via the `UPLOAD_DIR` environment variable.
+- **`getUploadsDir` Utility** — New centralized helper in `src/lib/utils/storage.ts` to unify storage path resolution across all API routes.
+
+### Changed
+- **Storage Infrastructure** — Transitioned from a hybrid model (Vercel Blob + Local) to a purely disk-based local/persistent storage model.
+- **Improved File Serving** — Updated the `/api/files/` route to support dynamic storage roots with enhanced path-traversal protection using `path.resolve`.
+
+### Removed
+- **Vercel Blob Integration** — Completely removed `@vercel/blob` dependency and related environment variables (`BLOB_READ_WRITE_TOKEN`).
+- **Blob storage branches** — Simplified upload API routes by removing cloud storage logic.
+
+---
+
 ## [2.2.3] — 2026-04-26
 
 ### Fixed
@@ -463,6 +482,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.3.0 | 2026-04-26 | Persistent storage architecture & Vercel Blob removal |
 | 2.2.3 | 2026-04-26 | Production build fixes and linting cleanup |
 | 2.2.2 | 2026-04-26 | ID card designer enhancements (padding, background, border-radius) |
 | 2.2.1 | 2026-04-25 | Coolify deployment fix, Next.js 15 async params, and TS type fixes |
@@ -486,7 +506,8 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.2.3...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/your-org/fttddwa/compare/v2.2.3...v2.3.0
 [2.2.3]: https://github.com/your-org/fttddwa/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/your-org/fttddwa/compare/v2.2.1...v2.2.2
 [2.2.0]: https://github.com/your-org/fttddwa/compare/v2.1.0...v2.2.0

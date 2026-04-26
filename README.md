@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 2.2.3** | Deployable on Vercel + SiteGround MySQL or VPS + aaPanel
+> **Version 2.3.0** | Deployable on VPS + aaPanel / Coolify / Docker
 
 ---
 
@@ -22,7 +22,7 @@
 - **Member ID Card** — Public digital ID card system. Members verify identity at `/members/id-card` (Membership ID + phone); on success, they are redirected to a cryptographically signed, **single-use** PDF token URL that expires in 10 minutes. Card design features a modern portrait layout with automated validity calculation, digital signatures, and **full admin customization (colors, titles, visibility)**. Includes **dynamic vertical stacking** to prevent gaps when fields are missing and **multi-line wrapping** for long addresses.
 - **WhatsApp Module** — Automated + Manual messaging with multi-vendor support, fallback logic, and real-time status tracking; cron triggered via admin UI or external HTTP call (no worker required)
 - **Membership Analytics** — Dashboard stats for membership growth and WhatsApp credit consumption
-- **Photo Upload** — Secure passport-size photo upload with type + size validation (stored in Vercel Blob)
+- **Photo Upload** — Secure passport-size photo upload with type + size validation; stored in local/persistent storage with environment-aware paths
 - **Tamil Nadu Coverage** — All 38 districts and their taluks pre-loaded; "Others" option for custom districts
 - **Export** — Download member data as formatted Excel (`.xlsx`)
 
@@ -64,7 +64,7 @@
 | Forms | React Hook Form + `@hookform/resolvers` |
 | State | Zustand (auth store) |
 | Export | ExcelJS |
-| File Storage | Vercel Blob (`@vercel/blob`) |
+| File Storage | Local / Persistent Storage (Disk) |
 | Testing | Jest + ts-jest |
 | DevOps | Vercel (serverless) + Docker + Nginx |
 
@@ -149,7 +149,7 @@ The recommended production setup is **Vercel** (hosting) + **SiteGround** (MySQL
 | `JWT_SECRET` | 32+ random chars |
 | `JWT_REFRESH_SECRET` | 32+ random chars |
 | `ENCRYPTION_KEY` | exactly 32 chars |
-| `BLOB_READ_WRITE_TOKEN` | from Vercel Blob |
+| `UPLOAD_DIR` | (Optional) Path to storage |
 | `NEXT_PUBLIC_APP_URL` | `https://your-app.vercel.app` |
 | `MEMBERSHIP_ID_PREFIX` | `FTTD` |
 | `APP_ENV` | `production` |
@@ -172,6 +172,23 @@ Add an HTTP Request node in n8n scheduled at **09:00 IST (03:30 UTC)** daily.
 > **Logo & Signatures:**
 > - **Logos:** Both Primary and Secondary logos should be **1080x1080px** (Max 1MB).
 > - **Signatures:** Use images with a transparent background (PNG) or clean white background. For best results on ID cards, use a horizontal orientation (Max 500KB). **Resolution is automatically standardized to 650x300px.**
+
+## File Storage & Persistent Volumes
+
+The application uses environment-aware storage paths to handle file uploads (photos, signatures, branding).
+
+### Environment-Based Paths
+- **Development**: Files are stored in the `uploads/` folder in the project root.
+- **Production**: Files default to `/app/persist/uploads`.
+- **Custom Override**: You can override these by setting the `UPLOAD_DIR` environment variable to an absolute path.
+
+### Configuring Persistent Volumes (Coolify/Docker)
+To ensure uploaded files are not lost during redeployments, you **must** mount a persistent volume.
+
+**Mount Point:**
+- **Destination Path**: `/app/persist/uploads`
+
+In Coolify, go to **Storage → Volumes** and add a mount to this path.
 
 ---
 
@@ -231,7 +248,7 @@ fttddwa/
 │   │       ├── settings/        # app (public GET), app/update (PATCH)
 │   │       ├── dashboard/       # Stats & activity aggregation
 │   │       ├── whatsapp/        # Logs, Stats, Send, DLR, Cron
-│   │       ├── upload/          # Photo upload → Vercel Blob
+│   │       ├── upload/          # Photo upload → Local Storage
 │   │       ├── files/           # Local file serving (legacy)
 │   │       ├── users/           # CRUD
 │   │       ├── roles/           # List
@@ -314,7 +331,7 @@ Interactive Swagger UI: [http://localhost:3000/api/docs](http://localhost:3000/a
 | `GET` | `/api/audit-logs` | List audit logs |
 | `GET` | `/api/dashboard/stats` | Dashboard stats |
 | `POST` | `/api/members/register` | Public member self-registration |
-| `POST` | `/api/upload` | Upload photo (→ Vercel Blob) |
+| `POST` | `/api/upload` | Upload photo (→ Local Storage) |
 | `GET` | `/api/settings/app` | Public app settings (registration flag, id card flag, branding) |
 | `PATCH` | `/api/settings/app/update` | Update app settings (Admin+) |
 | `GET` | `/api/members/card/lookup` | Public — look up member UUID + issue PDF token (Membership ID + phone) |
