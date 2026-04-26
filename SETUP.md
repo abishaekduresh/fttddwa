@@ -179,7 +179,21 @@ To ensure uploaded files are not lost during redeployments or container restarts
 **Mount Point:**
 - **Destination Path**: `/app/persist/uploads`
 
-In Coolify, navigate to **Storage → Volumes** and add a mount for this destination path. Without this, all uploaded photos and signatures will be deleted every time you deploy a new version.
+### 3. Server Preparation (SSH)
+Before deploying, you must create the directory on your server and set the correct permissions:
+
+```bash
+# Create the directory
+mkdir -p /data/volumes/fttddwa-uploads
+
+# Set permissions (UID 1000 is used by Node.js/Next.js containers)
+chown -R 1000:1000 /data/volumes/fttddwa-uploads
+chmod -R 775 /data/volumes/fttddwa-uploads
+```
+
+In Coolify, navigate to **Storage → Volumes** and add a mount:
+- **Source Path**: `/data/volumes/fttddwa-uploads`
+- **Destination Path**: `/app/persist/uploads`
 
 ---
 
