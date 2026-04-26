@@ -162,6 +162,24 @@ Select `ecosystem.config.js` as the project's startup script in the **PM2 Projec
 >    ```
 > 3. **Binary Paths**: All build scripts in `package.json` now use `npx` to ensure they can find local binaries (like `tsc` and `prisma`) even if they aren't in your global `PATH`.
 
+> [!IMPORTANT]
+> **Memory / Build Failures (Exit Code 255)**
+> If `npm run build` fails with `exit code 255` or simply crashes during the "Collecting page data" step, your server is likely running out of RAM. 
+> **Fix:** Add a 2GB swap file to provide virtual memory:
+> ```bash
+> # Create a 2GB swap file
+> sudo fallocate -l 2G /swapfile
+> # Set permissions
+> sudo chmod 600 /swapfile
+> # Setup and Enable
+> sudo mkswap /swapfile
+> sudo swapon /swapfile
+> # Make permanent
+> echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+> # Verify (Check 'Swap' row)
+> free -h
+> ```
+
 ---
 
 ## File Storage & Persistent Volumes
