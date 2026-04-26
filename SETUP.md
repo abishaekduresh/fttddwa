@@ -26,7 +26,7 @@ DATABASE_URL="mysql://root:password@localhost:3306/fttddwa_db"
 JWT_SECRET="your-32-char-secret-here-changeme"
 JWT_REFRESH_SECRET="another-32-char-refresh-secret-here"
 ENCRYPTION_KEY="exactly-32-chars-for-aes256-key!"
-UPLOAD_DIR="uploads" # Optional: defaults to 'uploads' in project root
+UPLOAD_DIR="uploads" # Optional: Path to storage (e.g. 'uploads' or '/app/persist/uploads')
 ```
 
 ### 3. Create the database
@@ -170,8 +170,8 @@ The application uses environment-aware storage paths to handle file uploads (mem
 
 ### 1. Environment-Based Paths
 - **Development**: Files are stored in the `uploads/` folder in the project root.
-- **Production**: Files default to `/app/persist/uploads`.
-- **Custom Override**: You can set `UPLOAD_DIR` to any absolute path in your `.env` file to override these defaults.
+- **Production**: Files default to `/app/persist/uploads` (Recommended).
+- **Custom Override**: You can set `UPLOAD_DIR` to any **absolute path** (e.g. `/app/persist/uploads`) to override these defaults. **Warning:** If using a relative path like `uploads` in production, files will NOT be persistent across redeployments.
 
 ### 2. Configuring Persistent Volumes (Coolify / Docker)
 To ensure uploaded files are not lost during redeployments or container restarts, you **must** mount a persistent volume to the following path:
