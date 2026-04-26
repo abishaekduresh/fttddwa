@@ -26,6 +26,7 @@ DATABASE_URL="mysql://root:password@localhost:3306/fttddwa_db"
 JWT_SECRET="your-32-char-secret-here-changeme"
 JWT_REFRESH_SECRET="another-32-char-refresh-secret-here"
 ENCRYPTION_KEY="exactly-32-chars-for-aes256-key!"
+UPLOAD_DIR="uploads" # Optional: defaults to 'uploads' in project root
 ```
 
 ### 3. Create the database
@@ -163,6 +164,25 @@ Select `ecosystem.config.js` as the project's startup script in the **PM2 Projec
 
 ---
 
+## File Storage & Persistent Volumes
+
+The application uses environment-aware storage paths to handle file uploads (member photos, signatures, and branding logos).
+
+### 1. Environment-Based Paths
+- **Development**: Files are stored in the `uploads/` folder in the project root.
+- **Production**: Files default to `/app/persist/uploads`.
+- **Custom Override**: You can set `UPLOAD_DIR` to any absolute path in your `.env` file to override these defaults.
+
+### 2. Configuring Persistent Volumes (Coolify / Docker)
+To ensure uploaded files are not lost during redeployments or container restarts, you **must** mount a persistent volume to the following path:
+
+**Mount Point:**
+- **Destination Path**: `/app/persist/uploads`
+
+In Coolify, navigate to **Storage → Volumes** and add a mount for this destination path. Without this, all uploaded photos and signatures will be deleted every time you deploy a new version.
+
+---
+
 ## Database Management
 
 ```bash
@@ -232,7 +252,7 @@ npm run test:watch
 | GET | /api/roles | Authenticated |
 | GET | /api/audit-logs | audit:read |
 | GET | /api/dashboard/stats | dashboard:read |
-| POST | /api/upload | members:create |
+| POST | /api/upload | members:create (Stores to Disk) |
 | GET | /api/health | Public |
 
 ---
