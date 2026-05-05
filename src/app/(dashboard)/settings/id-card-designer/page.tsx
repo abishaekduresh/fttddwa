@@ -399,7 +399,8 @@ export default function IdCardDesignerPage() {
         return <div style={{ width: "100%", height: "100%", backgroundColor: el.color || "#e2e8f0" }} />;
 
       case "text": {
-        const val = el.staticText ?? previewData[el.field || ""] ?? `[${el.label}]`;
+        const _p = el.staticText ?? previewData[el.field || ""] ?? "";
+        const val = _p || (el.fallbackField ? (previewData[el.fallbackField] ?? "") : "") || `[${el.label}]`;
         return (
           <div style={{
             width: "100%", height: "100%", overflow: "hidden",
@@ -417,7 +418,8 @@ export default function IdCardDesignerPage() {
       }
 
       case "row": {
-        const val  = el.staticText ?? previewData[el.field || ""] ?? "—";
+        const _rp  = el.staticText ?? previewData[el.field || ""] ?? "";
+        const val  = _rp || (el.fallbackField ? (previewData[el.fallbackField] ?? "") : "") || "—";
         const fs   = Math.round((el.fontSize || 9) * SCALE * 1.2);
         const valX = ((el.valueX ?? 110) - el.x) * SCALE;
         return (
@@ -740,9 +742,10 @@ export default function IdCardDesignerPage() {
                 let currentY = el.y;
                 let hiddenInDesigner = !el.visible;
 
-                // Check if the field is empty in the preview data
-                const value = el.staticText ?? previewData[el.field || ""] ?? "";
-                if (!value && (el.type === "text" || el.type === "row")) {
+                // Check if both primary and fallback fields are empty in preview data
+                const _pv = el.staticText ?? previewData[el.field || ""] ?? "";
+                const effectiveVal = _pv || (el.fallbackField ? (previewData[el.fallbackField] ?? "") : "");
+                if (!effectiveVal && (el.type === "text" || el.type === "row")) {
                   hiddenInDesigner = true;
                 }
 
@@ -908,6 +911,50 @@ export default function IdCardDesignerPage() {
                           </optgroup>
                         </select>
                       </label>
+
+                      {/* Fallback field — shown when primary field is empty */}
+                      {selEl.field && (
+                        <label className="block">
+                          <span className="prop-label">
+                            Fallback Field&ensp;
+                            <span className="normal-case text-slate-300 font-normal">(if primary is empty)</span>
+                          </span>
+                          <select
+                            value={selEl.fallbackField || ""}
+                            onChange={e => patch(selEl.id, { fallbackField: e.target.value || undefined })}
+                            className="form-input py-1 px-2 text-xs w-full mt-0.5"
+                          >
+                            <option value="">(None)</option>
+                            <optgroup label="Member Data">
+                              <option value="member.name">Name (English)</option>
+                              <option value="member.nameTamil">Name (Tamil)</option>
+                              <option value="member.position">Position</option>
+                              <option value="member.businessName">Business Name (EN)</option>
+                              <option value="member.businessNameTamil">Business Name (TA)</option>
+                              <option value="member.membershipId">ID Number</option>
+                              <option value="member.phone">Phone Number</option>
+                              <option value="member.dateOfBirth">Date of Birth</option>
+                              <option value="member.address">Full Address</option>
+                              <option value="member.village">Village</option>
+                              <option value="member.taluk">Taluk</option>
+                              <option value="member.district">District</option>
+                              <option value="member.validity">Validity</option>
+                              <option value="member.email">Email</option>
+                            </optgroup>
+                            <optgroup label="Association Data">
+                              <option value="association.name">Assoc Name (EN)</option>
+                              <option value="association.nameTamil">Assoc Name (TA)</option>
+                              <option value="association.regNumber">Reg. Number</option>
+                              <option value="association.address">Assoc Address</option>
+                              <option value="association.statePhone">State / Phone</option>
+                            </optgroup>
+                            <optgroup label="Settings">
+                              <option value="settings.footerTitle">Footer Title</option>
+                              <option value="settings.cardTitle">Card Title</option>
+                            </optgroup>
+                          </select>
+                        </label>
+                      )}
 
                       {/* Custom / static text content */}
                       <label className="block">

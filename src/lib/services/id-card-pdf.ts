@@ -117,7 +117,8 @@ async function renderFromLayout(
       }
 
       case "text": {
-        const value = el.staticText ?? data[el.field || ""] ?? "";
+        const _primary = el.staticText ?? data[el.field || ""] ?? "";
+        const value = _primary || (el.fallbackField ? (data[el.fallbackField] ?? "") : "");
         if (!value) {
           if (el.stackGroup) skipStack(el);
           break;
@@ -132,7 +133,8 @@ async function renderFromLayout(
       }
 
       case "row": {
-        const value = el.staticText ?? data[el.field || ""] ?? "";
+        const _primary = el.staticText ?? data[el.field || ""] ?? "";
+        const value = _primary || (el.fallbackField ? (data[el.fallbackField] ?? "") : "");
         if (!value) {
           if (el.stackGroup) skipStack(el);
           break;
@@ -161,7 +163,7 @@ async function renderFromLayout(
 
       case "image": {
         const currentY = el.stackGroup ? applyStack(el) : el.y;
-        const buf = images[el.field || ""];
+        const buf = images[el.field || ""] ?? (el.fallbackField ? (images[el.fallbackField] ?? null) : null);
         if (!buf) {
           if (el.stackGroup) commitStack(el, currentY, el.h);
           break;
@@ -214,7 +216,8 @@ async function renderFromLayout(
       }
 
       case "qrcode": {
-        const text = el.staticText ?? data[el.field || ""] ?? "";
+        const _qrPrimary = el.staticText ?? data[el.field || ""] ?? "";
+        const text = _qrPrimary || (el.fallbackField ? (data[el.fallbackField] ?? "") : "");
         if (!text) {
           if (el.stackGroup) skipStack(el);
           break;

@@ -10,6 +10,7 @@ export interface LayoutElement {
   label: string;
   type: ElemType;
   field?: string;        // data key → resolved at render time
+  fallbackField?: string; // used when field resolves to empty — secondary data key
   staticText?: string;   // custom text — overrides field lookup when set
   labelText?: string;    // row type: static label string
   x: number;            // PDF pt from card origin
