@@ -136,7 +136,7 @@ export async function getMemberById(id: number) {
 export async function updateMember(id: number, input: Partial<CreateMemberInput>) {
   const sanitized: Record<string, unknown> = {};
   if (input.name) sanitized.name = sanitizeText(input.name);
-  if (input.nameTamil) sanitized.nameTamil = sanitizeText(input.nameTamil);
+  if (input.nameTamil !== undefined) sanitized.nameTamil = input.nameTamil ? sanitizeText(input.nameTamil) : null;
   if (input.businessName !== undefined) sanitized.businessName = input.businessName ? sanitizeText(input.businessName) : null;
   if (input.businessNameTamil !== undefined) sanitized.businessNameTamil = input.businessNameTamil ? sanitizeText(input.businessNameTamil) : null;
   if (input.position !== undefined) sanitized.position = input.position ? sanitizeText(input.position) : null;
