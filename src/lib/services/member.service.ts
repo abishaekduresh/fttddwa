@@ -273,7 +273,7 @@ export async function getMemberCardByUuid(uuid: string): Promise<MemberCardRow |
       businessName: true, businessNameTamil: true, position: true,
       district: true, taluk: true, village: true, address: true, state: true,
       phone: true, email: true, photoUrl: true, status: true,
-      industry: true, validUntil: true,
+      industry: true, validUntil: true, dateOfBirth: true, weddingDate: true, joinedAt: true,
     },
   });
   return row as MemberCardRow | null;

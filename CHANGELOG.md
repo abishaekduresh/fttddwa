@@ -4,6 +4,13 @@ All notable changes to FTTDDWA Member Management System will be documented in th
 
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.6] — 2026-05-06
+
+### Fixed
+- **Member Edit Form** — Resolved an issue where the 'Village' field was not pre-populated when editing a member, despite existence in the database.
+- **ID Card PDF** — Fixed missing 'Date of Birth' on generated ID cards by including the field in the relational data retrieval service.
+- **Data Sync** — Added missing `weddingDate` and `joinedAt` fields to the public member card lookup to ensure all document-ready data is available for PDF generation.
+
 ## [2.4.5] — 2026-05-06
 
 ### Changed

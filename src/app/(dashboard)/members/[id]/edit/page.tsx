@@ -83,6 +83,7 @@ export default function EditMemberPage() {
             district: member.district as string,
             taluk: member.taluk as string,
             industry: member.industry as string || "",
+            village: member.village as string || "",
             phone: member.phone as string,
             email: member.email as string || "",
             dateOfBirth: member.dateOfBirth ? new Date(member.dateOfBirth as string).toISOString().split("T")[0] : "",
