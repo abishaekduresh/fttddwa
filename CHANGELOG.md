@@ -4,6 +4,18 @@ All notable changes to FTTDDWA Member Management System will be documented in th
 
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] — 2026-05-06
+
+### Added
+- **Direct PDF Sharing** — Refactored the ID card "Share" button to generate and share high-quality PDF files directly.
+- **SVG-to-PNG Rendering Pipeline** — Implemented a backend route using `sharp` to render stylized SVG member cards into PNG images.
+- **Enhanced Error Reporting** — Added detailed HTTP status codes to frontend toasts and server-side logging for diagnosing image/PDF generation failures.
+
+### Fixed
+- **Registration Form Type Mismatch** — Resolved a TypeScript error in `register/page.tsx` when processing dynamic API validation errors.
+- **PDF.js Compatibility** — Updated the ID card preview to satisfy `pdfjs-dist` (v5+) requirements by explicitly passing the `canvas` element to the render method.
+- **Optimized Image Fetching** — Improved the `imgDataUri` utility to reduce processing overhead and handle remote assets (logos, photos) more reliably.
+
 ---
 
 ## [2.3.0] — 2026-04-26
@@ -482,6 +494,7 @@ Initial production release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 2.4.0 | 2026-05-06 | Direct PDF sharing, SVG-to-PNG pipeline, and TypeScript/PDF.js fixes |
 | 2.3.0 | 2026-04-26 | Persistent storage architecture & Vercel Blob removal |
 | 2.2.3 | 2026-04-26 | Production build fixes and linting cleanup |
 | 2.2.2 | 2026-04-26 | ID card designer enhancements (padding, background, border-radius) |
@@ -506,7 +519,8 @@ Initial production release.
 
 ---
 
-[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/your-org/fttddwa/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/your-org/fttddwa/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/your-org/fttddwa/compare/v2.2.3...v2.3.0
 [2.2.3]: https://github.com/your-org/fttddwa/compare/v2.2.2...v2.2.3
 [2.2.2]: https://github.com/your-org/fttddwa/compare/v2.2.1...v2.2.2

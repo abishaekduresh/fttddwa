@@ -263,17 +263,27 @@ export default function IdCardDesignerPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // If an active template is set, sync its layout/colors with the current workspace
+      let newTemplates = templates;
+      if (activeTemplateId) {
+        newTemplates = templates.map(t =>
+          t.id === activeTemplateId
+            ? { ...t, primaryColor, headerTextColor, footerWaveColor, layout: elements }
+            : t
+        );
+      }
       const res = await apiFetch("/api/settings/app/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          idCardSettings: { ...existingSettings, primaryColor, headerTextColor, footerWaveColor, layout: elements, templates, activeTemplateId },
+          idCardSettings: { ...existingSettings, primaryColor, headerTextColor, footerWaveColor, layout: elements, templates: newTemplates, activeTemplateId },
         }),
       });
       const j = await res.json();
       if (j.success) {
-        toast.success(activeTemplateId ? "Layout saved (template is primary — PDF uses the template)" : "Layout saved — PDF will use this design");
-        setExistingSettings(prev => ({ ...prev, primaryColor, headerTextColor, footerWaveColor, layout: elements, templates, activeTemplateId }));
+        toast.success(activeTemplateId ? "Layout saved — active template updated" : "Layout saved — PDF will use this design");
+        setTemplates(newTemplates);
+        setExistingSettings(prev => ({ ...prev, primaryColor, headerTextColor, footerWaveColor, layout: elements, templates: newTemplates, activeTemplateId }));
       } else {
         toast.error(j.message || "Save failed");
       }
@@ -911,6 +921,22 @@ export default function IdCardDesignerPage() {
                           </optgroup>
                         </select>
                       </label>
+
+                      {/* Auto-fit text — shrink font to fit width */}
+                      {(selEl.type === "text" || selEl.type === "row") && (
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={!!selEl.autoFitText}
+                            onChange={e => patch(selEl.id, { autoFitText: e.target.checked || undefined })}
+                            className="accent-blue-500 w-3.5 h-3.5"
+                          />
+                          <span className="prop-label mb-0">
+                            Auto-fit text&ensp;
+                            <span className="normal-case text-slate-300 font-normal">(shrink font to fit width)</span>
+                          </span>
+                        </label>
+                      )}
 
                       {/* Fallback field — shown when primary field is empty */}
                       {selEl.field && (

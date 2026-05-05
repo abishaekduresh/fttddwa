@@ -8,6 +8,26 @@ import { DEFAULT_LAYOUT, type LayoutElement } from "@/lib/id-card-layout";
 
 const TAMIL_FONT_PATH = path.join(process.cwd(), "public", "fonts", "NotoSansTamil.ttf");
 
+/**
+ * Reduce font size in 0.5pt steps until the single-line width of `text` fits
+ * within `maxWidth`. Returns the adjusted size (never below 5pt).
+ */
+function fitFontSize(
+  doc: InstanceType<typeof PDFDocument>,
+  text: string,
+  maxWidth: number,
+  startSize: number,
+  font: string,
+): number {
+  doc.font(font).fontSize(startSize);
+  let size = startSize;
+  while (size > 5 && doc.widthOfString(text) > maxWidth) {
+    size -= 0.5;
+    doc.fontSize(size);
+  }
+  return size;
+}
+
 // ─── Layout-based renderer ─────────────────────────────────────────────────────
 async function renderFromLayout(
   doc: InstanceType<typeof PDFDocument>,
@@ -125,7 +145,10 @@ async function renderFromLayout(
         }
         const currentY = el.stackGroup ? applyStack(el) : el.y;
         const font = el.fontTamil ? "Tamil" : el.fontBold ? "Helvetica-Bold" : "Helvetica";
-        doc.fillColor(rc(el.color)).font(font).fontSize(el.fontSize || 9);
+        const fs = el.autoFitText
+          ? fitFontSize(doc, value, el.w, el.fontSize || 9, font)
+          : el.fontSize || 9;
+        doc.fillColor(rc(el.color)).font(font).fontSize(fs);
         const renderedH = doc.heightOfString(value, { width: el.w });
         doc.text(value, el.x, currentY, { width: el.w, align: el.align || "left", lineGap: 1 });
         if (el.stackGroup) commitStack(el, currentY, renderedH);
@@ -144,16 +167,18 @@ async function renderFromLayout(
         const vw  = el.w - (vx - el.x);
         const fs  = el.fontSize || 9;
 
-        // Measure value height (may wrap)
+        // Shrink value font if it overflows the value column width (only when autoFitText is on)
         const valFont = el.fontTamil ? "Tamil" : "Helvetica-Bold";
-        doc.font(valFont).fontSize(fs);
+        const valFs = el.autoFitText
+          ? fitFontSize(doc, value, vw, fs, valFont)
+          : fs;
         const valH = doc.heightOfString(value, { width: vw });
 
         // Draw label
-        doc.fillColor(el.labelColor || "#64748b").font("Helvetica").fontSize(fs)
+        doc.fillColor(el.labelColor || "#64748b").font("Helvetica").fontSize(valFs)
            .text(el.labelText || "", el.x, currentY, { width: vx - el.x - 4, lineGap: 1 });
         // Draw value
-        doc.fillColor(rc(el.valueColor) || "#334155").font(valFont).fontSize(fs)
+        doc.fillColor(rc(el.valueColor) || "#334155").font(valFont).fontSize(valFs)
            .text(value, vx, currentY, { width: vw, align: "left", lineGap: 1 });
 
         const renderedH = Math.max(el.h || 16, valH);
@@ -380,12 +405,12 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
       "member.uuid":              memberRow.uuid,
       "uuid":                     memberRow.uuid,
       "member.name":              memberRow.name,
-      "member.nameTamil":         memberRow.nameTamil         || "பெயர் இல்லை",
+      "member.nameTamil":         memberRow.nameTamil         || "",
       "member.position":          memberRow.position          || "",
       "member.businessName":      memberRow.businessName      || "",
-      "member.businessNameTamil": memberRow.businessNameTamil || "தமிழ் வணிகப் பெயர்",
+      "member.businessNameTamil": memberRow.businessNameTamil || "",
       "businessName":             memberRow.businessName      || "",
-      "businessNameTamil":        memberRow.businessNameTamil || "தமிழ் வணிகப் பெயர்",
+      "businessNameTamil":        memberRow.businessNameTamil || "",
       "member.industry":          memberRow.industry          || "",
       "member.village":           memberRow.village           || "",
       "village":                  memberRow.village           || "",
@@ -396,7 +421,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
       "member.location":          [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", "),
       "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (cs.validityYears || 2))}`,
       "member.email":             memberRow.email || "",
-      "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth) || "01.01.1990",
+      "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth),
       "member.dob":               fmtDOB(memberRow.dateOfBirth),
       "dateOfBirth":              fmtDOB(memberRow.dateOfBirth),
       "dob":                      fmtDOB(memberRow.dateOfBirth),
@@ -428,12 +453,12 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     "member.uuid":              memberRow.uuid,
     "uuid":                     memberRow.uuid,
     "member.name":              memberRow.name,
-    "member.nameTamil":         memberRow.nameTamil         || "பெயர் இல்லை",
+    "member.nameTamil":         memberRow.nameTamil         || "",
     "member.position":          memberRow.position          || "",
     "member.businessName":      memberRow.businessName      || "",
-    "member.businessNameTamil": memberRow.businessNameTamil || "தமிழ் வணிகப் பெயர்",
+    "member.businessNameTamil": memberRow.businessNameTamil || "",
     "businessName":             memberRow.businessName      || "",
-    "businessNameTamil":        memberRow.businessNameTamil || "தமிழ் வணிகப் பெயர்",
+    "businessNameTamil":        memberRow.businessNameTamil || "",
     "member.industry":          memberRow.industry          || "",
     "member.village":           memberRow.village           || "",
     "village":                  memberRow.village           || "",
@@ -444,7 +469,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     "member.location":          [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", "),
     "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (cs.validityYears || 2))}`,
     "member.email":             memberRow.email || "",
-    "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth) || "01.01.1990",
+    "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth),
     "member.dob":               fmtDOB(memberRow.dateOfBirth),
     "dateOfBirth":              fmtDOB(memberRow.dateOfBirth),
     "dob":                      fmtDOB(memberRow.dateOfBirth),

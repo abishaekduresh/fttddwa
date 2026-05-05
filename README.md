@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 2.3.0** | Deployable on VPS + aaPanel / Coolify / Docker
+> **Version 2.4.0** | Deployable on VPS + aaPanel / Coolify / Docker
 
 ---
 
@@ -19,7 +19,7 @@
 - **Public Self-Registration** — Members can register at `/members/register` (toggleable by admin); submitted records land as `PENDING` and require admin approval before becoming active
 - **Member Approval Workflow** — Self-registered members start with `PENDING` status. Admins approve them with a one-click button in the members list, changing status to `ACTIVE`. Non-active statuses (PENDING, INACTIVE, SUSPENDED, EXPIRED) each produce a specific descriptive error on the ID card page
 - **Member Status Toggle** — Admins can block/unblock members by toggling between `ACTIVE` and `INACTIVE` status directly from the members list
-- **Member ID Card** — Public digital ID card system. Members verify identity at `/members/id-card` (Membership ID + phone); on success, they are redirected to a cryptographically signed, **single-use** PDF token URL that expires in 10 minutes. Card design features a modern portrait layout with automated validity calculation, digital signatures, and **full admin customization (colors, titles, visibility)**. Includes **dynamic vertical stacking** to prevent gaps when fields are missing and **multi-line wrapping** for long addresses.
+- **Member ID Card** — Public digital ID card system. Members verify identity at `/members/id-card` (Membership ID + phone); on success, they are redirected to a cryptographically signed, **single-use** PDF token URL that expires in 10 minutes. Card design features a modern portrait layout with automated validity calculation, digital signatures, and **full admin customization (colors, titles, visibility)**. Includes **dynamic vertical stacking** to prevent gaps when fields are missing, **multi-line wrapping** for long addresses, and **direct PDF sharing** from the dashboard. Supporting server-side **SVG-to-PNG rendering** for high-fidelity previews.
 - **WhatsApp Module** — Automated + Manual messaging with multi-vendor support, fallback logic, and real-time status tracking; cron triggered via admin UI or external HTTP call (no worker required)
 - **Membership Analytics** — Dashboard stats for membership growth and WhatsApp credit consumption
 - **Photo Upload** — Secure passport-size photo upload with type + size validation; stored in local/persistent storage with environment-aware paths
@@ -336,6 +336,8 @@ Interactive Swagger UI: [http://localhost:3000/api/docs](http://localhost:3000/a
 | `PATCH` | `/api/settings/app/update` | Update app settings (Admin+) |
 | `GET` | `/api/members/card/lookup` | Public — look up member UUID + issue PDF token (Membership ID + phone) |
 | `GET` | `/api/members/card/:uuid` | Public — fetch member card data by UUID |
+| `GET` | `/api/members/card/:uuid/image` | Authenticated — generate server-rendered PNG image of the ID card |
+| `GET` | `/api/members/card/:uuid/pdf` | Authenticated — generate server-rendered PDF of the ID card |
 | `POST` | `/api/members/:id/approve` | Approve a PENDING member (Admin+) |
 | `PATCH` | `/api/members/:id/status` | Toggle member ACTIVE / INACTIVE (Data Entry+) |
 | `GET` | `/api/whatsapp/logs` | List message logs |

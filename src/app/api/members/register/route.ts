@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createMember, parseMemberUniqueError } from "@/lib/services/member.service";
-import { createMemberSchema } from "@/lib/validation/member.schema";
+import { publicRegisterSchema } from "@/lib/validation/member.schema";
 import { created, error, serverError } from "@/lib/api/response";
 import { MemberStatus } from "@prisma/client";
 import { getClientIp } from "@/lib/security/rate-limiter";
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const parsed = createMemberSchema.safeParse(body);
+    const parsed = publicRegisterSchema.safeParse(body);
 
     if (!parsed.success) {
       return error("Validation failed", 400, parsed.error.flatten().fieldErrors as Record<string, string[]>);

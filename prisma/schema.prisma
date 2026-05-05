@@ -16,8 +16,6 @@ model Role {
   isSystem    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  users       User[]
-  permissions RolePermission[]
 
   @@index([name])
   @@map("roles")
@@ -30,8 +28,7 @@ model Permission {
   resource    String   @db.VarChar(50)
   action      String   @db.VarChar(50)
   description String?  @db.Text
-  createdAt   DateTime         @default(now())
-  roles       RolePermission[]
+  createdAt   DateTime @default(now())
 
   @@index([resource, action])
   @@map("permissions")
@@ -40,9 +37,7 @@ model Permission {
 model RolePermission {
   roleId       Int
   permissionId Int
-  createdAt    DateTime   @default(now())
-  permission   Permission @relation(fields: [permissionId], references: [id])
-  role         Role       @relation(fields: [roleId], references: [id])
+  createdAt    DateTime @default(now())
 
   @@id([roleId, permissionId])
   @@index([permissionId], map: "role_permissions_permissionId_fkey")
@@ -53,7 +48,6 @@ model User {
   id               Int        @id @default(autoincrement())
   name             String     @db.VarChar(150)
   email            String     @unique
-  uniqueId         String?    @unique @db.VarChar(20)
   passwordHash     String     @db.VarChar(255)
   roleId           Int
   isActive         Boolean    @default(true)
@@ -65,11 +59,7 @@ model User {
   deletedAt        DateTime?
   isDeleted        Boolean    @default(false)
   status           UserStatus @default(ACTIVE)
-  role             Role       @relation(fields: [roleId], references: [id])
-  auditLogs        AuditLog[]
-  membersCreated   Member[]   @relation("CreatedBy")
-  membersUpdated   Member[]   @relation("UpdatedBy")
-  sessions         Session[]
+  uniqueId         String?    @unique @db.VarChar(20)
 
   @@index([email])
   @@index([roleId])
@@ -80,7 +70,6 @@ model Session {
   id           Int       @id @default(autoincrement())
   userId       Int
   refreshToken String    @unique
-  user         User      @relation(fields: [userId], references: [id])
   ipAddress    String?   @db.VarChar(45)
   userAgent    String?   @db.Text
   expiresAt    DateTime
@@ -93,7 +82,6 @@ model Session {
 
 model Member {
   id                Int          @id @default(autoincrement())
-  uuid              String       @unique @db.VarChar(36)
   membershipId      String       @unique @db.VarChar(20)
   name              String       @db.VarChar(200)
   nameTamil         String?      @db.VarChar(200)
@@ -105,11 +93,10 @@ model Member {
   industry          String?      @db.VarChar(150)
   dateOfBirth       DateTime?
   phone             String       @unique @db.VarChar(15)
-  email             String?      @unique @db.VarChar(191)
+  email             String?      @unique
   photoUrl          String?      @db.VarChar(500)
   status            MemberStatus @default(ACTIVE)
   joinedAt          DateTime     @default(now())
-  validUntil        DateTime?
   createdById       Int?
   updatedById       Int?
   createdAt         DateTime     @default(now())
@@ -118,14 +105,13 @@ model Member {
   weddingDate       DateTime?
   businessName      String?      @db.VarChar(200)
   businessNameTamil String?      @db.VarChar(200)
-  remark            String?      @db.Text
   notifyBirthday    Boolean      @default(true)
   notifyWedding     Boolean      @default(true)
+  remark            String?      @db.Text
   state             String       @default("Tamil Nadu") @db.VarChar(100)
   village           String?      @db.VarChar(150)
-  createdBy         User?        @relation("CreatedBy", fields: [createdById], references: [id])
-  updatedBy         User?        @relation("UpdatedBy", fields: [updatedById], references: [id])
-  whatsappLogs      WhatsappLog[]
+  uuid              String       @unique @db.VarChar(36)
+  validUntil        DateTime?
 
   @@index([uuid])
   @@index([district])
@@ -133,6 +119,7 @@ model Member {
   @@index([status])
   @@index([membershipId])
   @@index([createdById], map: "members_createdById_fkey")
+  @@index([updatedById], map: "members_updatedById_fkey")
   @@fulltext([name, address])
   @@map("members")
 }
@@ -141,7 +128,6 @@ model AuditLog {
   id         Int      @id @default(autoincrement())
   userId     Int?
   userEmail  String?  @db.VarChar(255)
-  user       User?    @relation(fields: [userId], references: [id])
   action     String   @db.VarChar(50)
   resource   String   @db.VarChar(50)
   resourceId String?  @db.VarChar(50)
@@ -160,79 +146,69 @@ model AuditLog {
 }
 
 model AssociationSetting {
-  id             Int      @id @default(1)
-  name           String   @db.VarChar(255)
-  nameTamil      String?  @db.VarChar(255)
-  shortName      String   @db.VarChar(50)
-  shortNameTamil String?  @db.VarChar(50)
-  tagline        String?  @db.VarChar(255)
-  taglineTamil   String?  @db.VarChar(255)
-  logo1Url       String?  @db.VarChar(500)
-  logo2Url       String?  @db.VarChar(500)
-  regNumber      String?  @db.VarChar(100)
-  address        String?  @db.Text
-  addressTamil   String?  @db.Text
-  state          String?  @db.VarChar(100)
-  stateTamil     String?  @db.VarChar(100)
+  id                       Int      @id @default(1)
+  name                     String   @db.VarChar(255)
+  nameTamil                String?  @db.VarChar(255)
+  shortName                String   @db.VarChar(50)
+  shortNameTamil           String?  @db.VarChar(50)
+  tagline                  String?  @db.VarChar(255)
+  taglineTamil             String?  @db.VarChar(255)
+  logo1Url                 String?  @db.VarChar(500)
+  logo2Url                 String?  @db.VarChar(500)
+  regNumber                String?  @db.VarChar(100)
+  address                  String?  @db.Text
+  addressTamil             String?  @db.Text
+  state                    String?  @db.VarChar(100)
+  stateTamil               String?  @db.VarChar(100)
   email                    String?  @db.VarChar(255)
   phone                    String?  @db.VarChar(20)
-  enableMemberRegistration Boolean  @default(true)
+  updatedAt                DateTime @updatedAt
   enableIdCard             Boolean  @default(true)
+  enableMemberRegistration Boolean  @default(true)
   idCardSettings           Json?
   sigChairmanUrl           String?  @db.VarChar(500)
-  sigPresidentUrl          String?  @db.VarChar(500)
-  sigVicePresidentUrl      String?  @db.VarChar(500)
-  sigSecretaryUrl          String?  @db.VarChar(500)
   sigJointSecretaryUrl     String?  @db.VarChar(500)
+  sigPresidentUrl          String?  @db.VarChar(500)
+  sigSecretaryUrl          String?  @db.VarChar(500)
   sigTreasurerUrl          String?  @db.VarChar(500)
-  updatedAt                DateTime @updatedAt
+  sigVicePresidentUrl      String?  @db.VarChar(500)
 
   @@map("association_settings")
 }
 
-// ─── WhatsApp Module ──────────────────────────────────────────────────────────
-
 model WhatsappVendor {
-  id              Int                @id @default(autoincrement())
-  name            String             @db.VarChar(100)
-  apiBaseUrl      String             @db.VarChar(500)
-  apiKeyEncrypted String             @db.Text
-  isActive        Boolean            @default(true)
-  status          WaRecordStatus     @default(ACTIVE)
-  rateLimitPerSec Int                @default(10)
-  retryLimit      Int                @default(3)
-  walletBalance   Decimal            @default(0) @db.Decimal(12, 4)
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  templates       WhatsappTemplate[]
-  logs            WhatsappLog[]
-  settings        WhatsappSettings[]
-  creditLogs      WhatsappCreditLog[]
+  id              Int            @id @default(autoincrement())
+  name            String         @db.VarChar(100)
+  apiBaseUrl      String         @db.VarChar(500)
+  apiKeyEncrypted String         @db.Text
+  isActive        Boolean        @default(true)
+  rateLimitPerSec Int            @default(10)
+  retryLimit      Int            @default(3)
+  walletBalance   Decimal        @default(0.0000) @db.Decimal(12, 4)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  status          WaRecordStatus @default(ACTIVE)
 
   @@map("whatsapp_vendors")
 }
 
 model WhatsappTemplate {
-  id               Int                  @id @default(autoincrement())
+  id               Int                @id @default(autoincrement())
   vendorId         Int
-  templateName     String               @db.VarChar(200)
-  vendorTemplateId String?              @db.VarChar(200)
-  language         String               @default("en") @db.VarChar(10)
+  templateName     String             @db.VarChar(200)
+  language         String             @default("en") @db.VarChar(10)
   category         WaTemplateCategory
-  variables     Json?
-  body          String?              @db.Text
-  headerText    String?              @db.Text
-  headerFormat  String?              @db.VarChar(50)
-  footerText    String?              @db.VarChar(500)
-  buttons       Json?
-  isActive      Boolean              @default(true)
-  status        WaRecordStatus       @default(ACTIVE)
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  vendor        WhatsappVendor       @relation(fields: [vendorId], references: [id])
-  birthdayFor   WhatsappSettings[]   @relation("BirthdayTemplate")
-  anniversaryFor WhatsappSettings[]  @relation("AnniversaryTemplate")
-  events        WhatsappEvent[]
+  variables        Json?
+  isActive         Boolean            @default(true)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  body             String?            @db.Text
+  buttons          Json?
+  footerText       String?            @db.VarChar(500)
+  headerFormat     String?            @db.VarChar(50)
+  headerText       String?            @db.Text
+  status           WaRecordStatus     @default(ACTIVE)
+  vendorTemplateId String?            @db.VarChar(200)
 
   @@index([vendorId])
   @@index([category])
@@ -240,44 +216,40 @@ model WhatsappTemplate {
 }
 
 model WhatsappEvent {
-  id           Int              @id @default(autoincrement())
-  name         String           @db.VarChar(200)
+  id           Int         @id @default(autoincrement())
+  name         String      @db.VarChar(200)
   type         WaEventType
   templateId   Int
-  scheduleTime String           @db.VarChar(5)
-  isActive     Boolean          @default(true)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  template     WhatsappTemplate @relation(fields: [templateId], references: [id])
+  scheduleTime String      @db.VarChar(5)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
 
   @@index([templateId])
   @@map("whatsapp_events")
 }
 
 model WhatsappLog {
-  id              Int            @id @default(autoincrement())
-  vendorId        Int
-  memberId        Int
-  messageType     WaMessageType
-  templateName    String?        @db.VarChar(200)
-  messageBody     String?        @db.Text
-  messageBodyResolved String?        @db.Text
-  recipientPhone  String         @db.VarChar(20)
-  vendorMessageId String?        @db.VarChar(200)
-  status          WaLogStatus    @default(pending)
-  statusCheckCount Int            @default(0)
-  retryCount      Int            @default(0)
-  errorMessage    String?        @db.Text
-  sentAt          DateTime?
-  deliveredAt     DateTime?
-  readAt          DateTime?
-  scheduledDate   DateTime       @db.Date
-  nextRetryAt     DateTime?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-  vendor          WhatsappVendor @relation(fields: [vendorId], references: [id])
-  member          Member         @relation(fields: [memberId], references: [id])
-  creditLogs      WhatsappCreditLog[]
+  id                  Int           @id @default(autoincrement())
+  vendorId            Int
+  memberId            Int
+  messageType         WaMessageType
+  templateName        String?       @db.VarChar(200)
+  messageBody         String?       @db.Text
+  recipientPhone      String        @db.VarChar(20)
+  vendorMessageId     String?       @db.VarChar(200)
+  status              WaLogStatus   @default(pending)
+  retryCount          Int           @default(0)
+  errorMessage        String?       @db.Text
+  sentAt              DateTime?
+  deliveredAt         DateTime?
+  scheduledDate       DateTime      @db.Date
+  nextRetryAt         DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  messageBodyResolved String?       @db.Text
+  readAt              DateTime?
+  statusCheckCount    Int           @default(0)
 
   @@index([vendorId])
   @@index([status, nextRetryAt])
@@ -293,29 +265,28 @@ model WhatsappCreditLog {
   amount    Decimal       @default(1.0000) @db.Decimal(12, 4)
   type      WaMessageType
   createdAt DateTime      @default(now())
-  vendor    WhatsappVendor @relation(fields: [vendorId], references: [id])
-  log       WhatsappLog?   @relation(fields: [logId], references: [id])
 
   @@index([vendorId])
   @@index([type])
   @@index([createdAt])
+  @@index([logId], map: "whatsapp_credit_logs_logId_fkey")
   @@map("whatsapp_credit_logs")
 }
 
 model WhatsappCronLog {
-  id              Int       @id @default(autoincrement())
-  triggeredBy     String    @default("scheduler") @db.VarChar(50) // "scheduler" | "manual" | "admin"
-  istDate         String    @db.VarChar(10)   // "YYYY-MM-DD" (IST date the cron ran for)
-  processed       Int       @default(0)
-  enqueued        Int       @default(0)
-  skipped         Int       @default(0)
-  failed          Int       @default(0)
-  stoppedReason   String?   @db.VarChar(500)
-  skippedDetails  Json?     // CronSkipDetail[]
-  errors          Json?     // string[]
-  diagnostics     Json?     // { birthdaysToday, anniversariesToday, ... }
-  durationMs      Int?      // wall-clock ms for the run
-  createdAt       DateTime  @default(now())
+  id             Int      @id @default(autoincrement())
+  triggeredBy    String   @default("scheduler") @db.VarChar(50)
+  istDate        String   @db.VarChar(10)
+  processed      Int      @default(0)
+  enqueued       Int      @default(0)
+  skipped        Int      @default(0)
+  failed         Int      @default(0)
+  stoppedReason  String?  @db.VarChar(500)
+  skippedDetails Json?
+  errors         Json?
+  diagnostics    Json?
+  durationMs     Int?
+  createdAt      DateTime @default(now())
 
   @@index([createdAt])
   @@index([istDate])
@@ -323,26 +294,26 @@ model WhatsappCronLog {
 }
 
 model WhatsappSettings {
-  id                    Int               @id @default(1)
+  id                    Int      @id @default(1)
   activeVendorId        Int?
-  retryAttempts         Int               @default(3)
-  cronTime              String            @default("09:00") @db.VarChar(5)
-  enableBirthday        Boolean           @default(true)
-  enableAnniversary     Boolean           @default(true)
-  enableEvents          Boolean           @default(true)
+  retryAttempts         Int      @default(3)
+  cronTime              String   @default("09:00") @db.VarChar(5)
+  enableBirthday        Boolean  @default(true)
+  enableAnniversary     Boolean  @default(true)
+  enableEvents          Boolean  @default(true)
   birthdayTemplateId    Int?
   anniversaryTemplateId Int?
-  birthdayVariables     Json?
+  updatedAt             DateTime @updatedAt
+  countryCode           String   @default("+91") @db.VarChar(10)
+  countryName           String   @default("India") @db.VarChar(100)
   anniversaryVariables  Json?
-  countryCode           String            @default("+91") @db.VarChar(10)
-  countryName           String            @default("India") @db.VarChar(100)
-  enableExternalCron    Boolean           @default(true)
-  externalCronSecret    String?           @db.VarChar(100)
-  updatedAt             DateTime          @updatedAt
-  activeVendor          WhatsappVendor?   @relation(fields: [activeVendorId], references: [id])
-  birthdayTemplate      WhatsappTemplate? @relation("BirthdayTemplate", fields: [birthdayTemplateId], references: [id])
-  anniversaryTemplate   WhatsappTemplate? @relation("AnniversaryTemplate", fields: [anniversaryTemplateId], references: [id])
+  birthdayVariables     Json?
+  enableExternalCron    Boolean  @default(true)
+  externalCronSecret    String?  @db.VarChar(100)
 
+  @@index([activeVendorId], map: "whatsapp_settings_activeVendorId_fkey")
+  @@index([anniversaryTemplateId], map: "whatsapp_settings_anniversaryTemplateId_fkey")
+  @@index([birthdayTemplateId], map: "whatsapp_settings_birthdayTemplateId_fkey")
   @@map("whatsapp_settings")
 }
 
@@ -384,8 +355,6 @@ enum WaRecordStatus {
   INACTIVE
   DELETED
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
 
 enum MemberStatus {
   PENDING

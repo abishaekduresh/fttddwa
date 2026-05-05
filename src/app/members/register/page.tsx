@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, UserPlus, CheckCircle2, ArrowLeft, ShieldOff, Camera, X } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 import Link from "next/link";
-import { createMemberSchema, type CreateMemberInput } from "@/lib/validation/member.schema";
+import { publicRegisterSchema, type PublicRegisterInput } from "@/lib/validation/member.schema";
 import { TAMIL_NADU_DISTRICTS } from "@/constants/districts";
 
 export default function MemberRegisterPage() {
@@ -37,8 +37,8 @@ export default function MemberRegisterPage() {
     setValue,
     setError,
     formState: { errors },
-  } = useForm<CreateMemberInput>({
-    resolver: zodResolver(createMemberSchema),
+  } = useForm<PublicRegisterInput>({
+    resolver: zodResolver(publicRegisterSchema),
     defaultValues: {
       state: "Tamil Nadu",
       position: "Member",
@@ -87,7 +87,7 @@ export default function MemberRegisterPage() {
     setPreviewUrl(null);
   };
 
-  const onSubmit = async (data: CreateMemberInput) => {
+  const onSubmit = async (data: PublicRegisterInput) => {
     setLoading(true);
     setServerError(null);
     try {
@@ -101,7 +101,7 @@ export default function MemberRegisterPage() {
         if (res.status === 409 && json.errors) {
           for (const [field, messages] of Object.entries(json.errors as Record<string, string[]>)) {
             const msg = (messages as string[])[0];
-            setError(field as keyof CreateMemberInput, { message: msg });
+            setError(field as any, { message: msg });
             toast.error(msg);
           }
           return;
@@ -245,7 +245,7 @@ export default function MemberRegisterPage() {
                   <div className="flex flex-col sm:flex-row gap-6 mb-6">
                     {/* Photo Upload */}
                     <div className="flex-shrink-0">
-                      <label className="form-label mb-2 block">Member Photo</label>
+                      <label className="form-label mb-2 block">Member Photo <span className="text-red-500">*</span></label>
                       <div className="relative group w-32 h-40">
                         {previewUrl ? (
                           <>
@@ -286,28 +286,46 @@ export default function MemberRegisterPage() {
                         )}
                       </div>
                       <p className="text-[10px] text-slate-400 mt-2 text-center">Passport size (max 1MB)</p>
+                      {errors.photoUrl && <p className="text-red-600 text-xs mt-1 text-center">{errors.photoUrl.message}</p>}
                       <input type="hidden" {...register("photoUrl")} />
                     </div>
 
                     <div className="flex-1 grid grid-cols-1 sm:grid-cols-1 gap-4">
                       <div>
-                        <label className="form-label">Full Name <span className="text-red-500">*</span></label>
+                        <label className="form-label">Full Name (English) <span className="text-red-500">*</span></label>
                         <input
                           type="text"
                           placeholder="e.g. Ravi Kumar"
                           className={`form-input ${errors.name ? "form-input-error" : ""}`}
                           {...register("name")}
                         />
-                        {errors.name && <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>}
+                        {errors.name
+                          ? <p className="text-red-600 text-xs mt-1">{errors.name.message}</p>
+                          : <p className="text-slate-400 text-[10px] mt-1">English letters only</p>
+                        }
                       </div>
                       <div>
                         <label className="form-label">Name in Tamil</label>
                         <input
                           type="text"
                           placeholder="e.g. ரவி குமார்"
-                          className="form-input"
-                          {...register("nameTamil")}
+                          className={`form-input ${errors.nameTamil ? "form-input-error" : ""}`}
+                          style={{ fontFamily: "'NotoSansTamil', sans-serif" }}
+                          {...(() => {
+                            const { onChange, ...rest } = register("nameTamil");
+                            return {
+                              ...rest,
+                              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                                e.target.value = e.target.value.replace(/[A-Za-z]/g, "");
+                                onChange(e);
+                              },
+                            };
+                          })()}
                         />
+                        {errors.nameTamil
+                          ? <p className="text-red-600 text-xs mt-1">{errors.nameTamil.message}</p>
+                          : <p className="text-slate-400 text-[10px] mt-1">Tamil characters only — English letters are not allowed</p>
+                        }
                       </div>
                     </div>
                   </div>
@@ -335,7 +353,7 @@ export default function MemberRegisterPage() {
                       {errors.phone && <p className="text-red-600 text-xs mt-1">{errors.phone.message}</p>}
                     </div>
                     <div>
-                      <label className="form-label">Email Address</label>
+                      <label className="form-label">Email Address <span className="text-red-500">*</span></label>
                       <input
                         type="email"
                         placeholder="your@email.com"
@@ -345,12 +363,13 @@ export default function MemberRegisterPage() {
                       {errors.email && <p className="text-red-600 text-xs mt-1">{errors.email.message}</p>}
                     </div>
                     <div>
-                      <label className="form-label">Date of Birth</label>
+                      <label className="form-label">Date of Birth <span className="text-red-500">*</span></label>
                       <input
                         type="date"
-                        className="form-input"
+                        className={`form-input ${errors.dateOfBirth ? "form-input-error" : ""}`}
                         {...register("dateOfBirth")}
                       />
+                      {errors.dateOfBirth && <p className="text-red-600 text-xs mt-1">{errors.dateOfBirth.message}</p>}
                     </div>
                     <div>
                       <label className="form-label">Wedding Anniversary</label>
@@ -372,23 +391,37 @@ export default function MemberRegisterPage() {
                   </legend>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="form-label text-slate-700">Business Name (English)</label>
+                      <label className="form-label text-slate-700">Business Name (English) <span className="text-red-500">*</span></label>
                       <input
                         type="text"
                         placeholder="e.g. Ravi Tent House"
-                        className="form-input"
+                        className={`form-input ${errors.businessName ? "form-input-error" : ""}`}
                         {...register("businessName")}
                       />
+                      {errors.businessName && <p className="text-red-600 text-xs mt-1">{errors.businessName.message}</p>}
                     </div>
                     <div>
                       <label className="form-label text-slate-700">Business Name (Tamil)</label>
                       <input
                         type="text"
                         placeholder="e.g. ரவி டென்ட் ஹவுஸ்"
-                        className="form-input tamil"
-                        dir="auto"
-                        {...register("businessNameTamil")}
+                        className={`form-input ${errors.businessNameTamil ? "form-input-error" : ""}`}
+                        style={{ fontFamily: "'NotoSansTamil', sans-serif" }}
+                        {...(() => {
+                          const { onChange, ...rest } = register("businessNameTamil");
+                          return {
+                            ...rest,
+                            onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                              e.target.value = e.target.value.replace(/[A-Za-z]/g, "");
+                              onChange(e);
+                            },
+                          };
+                        })()}
                       />
+                      {errors.businessNameTamil
+                        ? <p className="text-red-600 text-xs mt-1">{errors.businessNameTamil.message}</p>
+                        : <p className="text-slate-400 text-[10px] mt-1">Tamil characters only — English letters are not allowed</p>
+                      }
                     </div>
                     <div>
                       <label className="form-label">Position / Role</label>

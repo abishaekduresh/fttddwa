@@ -29,5 +29,37 @@ export const createMemberSchema = z.object({
 
 export const updateMemberSchema = createMemberSchema.partial();
 
+/**
+ * Stricter schema used only for the public self-registration form.
+ * - Adds mandatory: photo, email, dateOfBirth, businessName
+ * - name must be English letters only
+ * - nameTamil / businessNameTamil must not contain English letters
+ */
+export const publicRegisterSchema = createMemberSchema.extend({
+  name: z
+    .string()
+    .min(2, "Name must be at least 2 characters")
+    .max(200)
+    .regex(/^[A-Za-z\s.,'"\-()/]+$/, "Full name must be in English only (no Tamil characters)"),
+  nameTamil: z
+    .string()
+    .max(200)
+    .regex(/^[^A-Za-z]*$/, "Name in Tamil must not contain English letters")
+    .optional(),
+  businessName: z
+    .string()
+    .min(2, "Business name (English) is required")
+    .max(200),
+  businessNameTamil: z
+    .string()
+    .max(200)
+    .regex(/^[^A-Za-z]*$/, "Business name in Tamil must not contain English letters")
+    .optional(),
+  email: z.string().email("Invalid email address").min(1, "Email address is required"),
+  photoUrl: z.string().min(1, "Please upload a member photo"),
+  dateOfBirth: z.string().min(1, "Date of birth is required"),
+});
+
 export type CreateMemberInput = z.infer<typeof createMemberSchema>;
 export type UpdateMemberInput = z.infer<typeof updateMemberSchema>;
+export type PublicRegisterInput = z.infer<typeof publicRegisterSchema>;

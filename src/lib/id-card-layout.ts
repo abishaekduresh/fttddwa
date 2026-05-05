@@ -41,6 +41,7 @@ export interface LayoutElement {
   padding?: number;      // image padding (pt)
   stackGroup?: string;   // elements with same group will stack vertically if one is empty/hidden
   minY?: number;         // stacking floor — element will never render above this Y (PDF pt)
+  autoFitText?: boolean; // shrink font size to fit text within element width in one line
 }
 
 /**

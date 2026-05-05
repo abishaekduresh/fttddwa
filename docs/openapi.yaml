@@ -20,7 +20,7 @@ info:
     | Auth endpoints | 5 requests / 15 min per IP |
     | All API endpoints | 100 requests / 15 min per IP |
 
-  version: "2.0.0"
+  version: "2.4.0"
   contact:
     name: FTTDDWA IT Support
     email: admin@fttddwa.org
@@ -2647,6 +2647,72 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/RateLimit"
+
+  /members/card/{uuid}/image:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        schema:
+          type: string
+        example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    get:
+      tags: [Members]
+      summary: Get member card image (PNG)
+      description: |
+        Authenticated endpoint. Generates a server-rendered PNG image of the member's ID card using the SVG-to-PNG pipeline.
+        Requires a valid user session.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: PNG image returned
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Member is not ACTIVE
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /members/card/{uuid}/pdf:
+    parameters:
+      - name: uuid
+        in: path
+        required: true
+        schema:
+          type: string
+        example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+
+    get:
+      tags: [Members]
+      summary: Get member card PDF
+      description: |
+        Authenticated endpoint. Generates a server-rendered PDF of the member's ID card.
+        Requires a valid user session.
+      security:
+        - cookieAuth: []
+        - bearerAuth: []
+      responses:
+        "200":
+          description: PDF document returned
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          description: Member is not ACTIVE or ID card feature disabled
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # ── HEALTH ───────────────────────────────────────────────────────────────────
 
