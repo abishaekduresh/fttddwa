@@ -91,6 +91,7 @@ export default function EditMemberPage() {
             aadhaar: member.aadhaarHash as string || "",
             businessName: member.businessName as string || "",
             businessNameTamil: member.businessNameTamil as string || "",
+            status: member.status as any,
           }}
           onSubmit={handleSubmit}
           loading={loading}

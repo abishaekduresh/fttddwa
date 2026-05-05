@@ -7,12 +7,11 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Printer, User, Phone, Mail, MapPin, Building2, Cake, Heart,
-  CreditCard, Home, Bell, Edit2, Trash2, Share2, Loader2, X, Check,
+  CreditCard, Home, Bell, Edit2, Trash2, Share2, Loader2,
 } from "lucide-react";
 import Image from "next/image";
 import { formatDate, calculateAge } from "@/lib/utils/format";
 import toast from "react-hot-toast";
-import { TAMIL_NADU_DISTRICTS } from "@/constants/districts";
 
 interface MemberDetail {
   id: number;
@@ -75,11 +74,6 @@ export default function MemberDetailPage() {
   const [notifyWedding,  setNotifyWedding]  = useState(true);
   const [savingNotify,   setSavingNotify]   = useState(false);
 
-  // Edit modal
-  const [showEdit, setShowEdit] = useState(false);
-  const [editData, setEditData] = useState<Partial<MemberDetail>>({});
-  const [saving,   setSaving]   = useState(false);
-
   // Delete confirm
   const [showDelete, setShowDelete] = useState(false);
   const [deleting,   setDeleting]   = useState(false);
@@ -87,14 +81,12 @@ export default function MemberDetailPage() {
   // Share PNG
   const [sharing, setSharing] = useState(false);
 
-  const districts = Object.keys(TAMIL_NADU_DISTRICTS).sort();
-
   // ── Fetch member ──────────────────────────────────────────────────────────
   useEffect(() => {
     fetch(`/api/members/${params.id}`)
       .then((r) => r.json())
       .then((j) => {
-        if (j.success) { setMember(j.data); setEditData(j.data); }
+        if (j.success) { setMember(j.data); }
         else router.push("/members");
       })
       .catch(() => router.push("/members"))
@@ -128,37 +120,6 @@ export default function MemberDetailPage() {
       if (field === "notifyBirthday") setNotifyBirthday(!value); else setNotifyWedding(!value);
     } finally {
       setSavingNotify(false);
-    }
-  };
-
-  // ── Edit save ─────────────────────────────────────────────────────────────
-  const handleEditSave = async () => {
-    setSaving(true);
-    try {
-      const res = await apiFetch(`/api/members/${params.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...editData,
-          dateOfBirth: editData.dateOfBirth
-            ? new Date(editData.dateOfBirth).toISOString().split("T")[0] : undefined,
-          weddingDate: editData.weddingDate
-            ? new Date(editData.weddingDate).toISOString().split("T")[0] : undefined,
-        }),
-      });
-      const j = await res.json();
-      if (j.success) {
-        setMember(j.data);
-        setEditData(j.data);
-        setShowEdit(false);
-        toast.success("Member updated");
-      } else {
-        toast.error(j.message || "Update failed");
-      }
-    } catch {
-      toast.error("Update failed");
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -245,14 +206,6 @@ export default function MemberDetailPage() {
 
   if (!member) return null;
 
-  const toDateInput = (v?: string) => {
-    if (!v) return "";
-    try { return new Date(v).toISOString().split("T")[0]; } catch { return ""; }
-  };
-
-  const selectedDistrict = editData.district || "";
-  const taluks = TAMIL_NADU_DISTRICTS[selectedDistrict] ?? [];
-
   return (
     <>
       <div className="max-w-2xl mx-auto space-y-4">
@@ -292,13 +245,13 @@ export default function MemberDetailPage() {
             </button>
 
             {/* Edit */}
-            <button
-              onClick={() => { setEditData(member); setShowEdit(true); }}
+            <Link
+              href={`/members/${params.id}/edit`}
               className="btn btn-outline text-sm py-1.5"
               title="Edit member"
             >
               <Edit2 size={14} /> {/* Edit */}
-            </button>
+            </Link>
 
             {/* Delete */}
             <button
@@ -424,155 +377,6 @@ export default function MemberDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* ── Edit Modal ───────────────────────────────────────────────────── */}
-      {showEdit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.45)" }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-900">Edit Member</h2>
-              <button onClick={() => setShowEdit(false)} className="text-slate-400 hover:text-slate-700 transition-colors">
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Scrollable body */}
-            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5">
-
-              {/* Personal */}
-              <fieldset className="space-y-3">
-                <legend className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2 w-full">
-                  <span className="flex-1 border-t border-slate-100" />Personal<span className="flex-1 border-t border-slate-100" />
-                </legend>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="form-label">Full Name <span className="text-red-500">*</span></label>
-                    <input className="form-input" value={editData.name || ""} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label">Name in Tamil</label>
-                    <input className="form-input" style={{ fontFamily: "'NotoSansTamil', sans-serif" }}
-                      value={editData.nameTamil || ""}
-                      onChange={e => setEditData(p => ({ ...p, nameTamil: e.target.value.replace(/[A-Za-z]/g, "") }))} />
-                  </div>
-                  <div>
-                    <label className="form-label">Phone <span className="text-red-500">*</span></label>
-                    <input className="form-input" inputMode="numeric" maxLength={10} value={editData.phone || ""}
-                      onChange={e => setEditData(p => ({ ...p, phone: e.target.value.replace(/\D/g, "").slice(0, 10) }))} />
-                  </div>
-                  <div>
-                    <label className="form-label">Email</label>
-                    <input className="form-input" type="email" value={editData.email || ""} onChange={e => setEditData(p => ({ ...p, email: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label">Date of Birth</label>
-                    <input className="form-input" type="date" value={toDateInput(editData.dateOfBirth)} onChange={e => setEditData(p => ({ ...p, dateOfBirth: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label">Wedding Anniversary</label>
-                    <input className="form-input" type="date" value={toDateInput(editData.weddingDate)} onChange={e => setEditData(p => ({ ...p, weddingDate: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label">Status</label>
-                    <select className="form-input" value={editData.status || "ACTIVE"} onChange={e => setEditData(p => ({ ...p, status: e.target.value }))}>
-                      <option value="ACTIVE">Active</option>
-                      <option value="PENDING">Pending</option>
-                      <option value="INACTIVE">Inactive</option>
-                      <option value="SUSPENDED">Suspended</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="form-label">Position / Role</label>
-                    <input className="form-input" value={editData.position || ""} onChange={e => setEditData(p => ({ ...p, position: e.target.value }))} />
-                  </div>
-                </div>
-              </fieldset>
-
-              {/* Business */}
-              <fieldset className="space-y-3">
-                <legend className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2 w-full">
-                  <span className="flex-1 border-t border-slate-100" />Business<span className="flex-1 border-t border-slate-100" />
-                </legend>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="form-label">Business Name (EN)</label>
-                    <input className="form-input" value={editData.businessName || ""} onChange={e => setEditData(p => ({ ...p, businessName: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label">Business Name (TA)</label>
-                    <input className="form-input" style={{ fontFamily: "'NotoSansTamil', sans-serif" }}
-                      value={editData.businessNameTamil || ""}
-                      onChange={e => setEditData(p => ({ ...p, businessNameTamil: e.target.value.replace(/[A-Za-z]/g, "") }))} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="form-label">Industry / Trade</label>
-                    <input className="form-input" value={editData.industry || ""} onChange={e => setEditData(p => ({ ...p, industry: e.target.value }))} />
-                  </div>
-                </div>
-              </fieldset>
-
-              {/* Location */}
-              <fieldset className="space-y-3">
-                <legend className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2 w-full">
-                  <span className="flex-1 border-t border-slate-100" />Location<span className="flex-1 border-t border-slate-100" />
-                </legend>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="form-label">District <span className="text-red-500">*</span></label>
-                    <select className="form-input" value={editData.district || ""}
-                      onChange={e => setEditData(p => ({ ...p, district: e.target.value, taluk: "" }))}>
-                      <option value="">Select district</option>
-                      {districts.map(d => <option key={d} value={d}>{d}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="form-label">Taluk <span className="text-red-500">*</span></label>
-                    {taluks.length > 0 ? (
-                      <select className="form-input" value={editData.taluk || ""}
-                        onChange={e => setEditData(p => ({ ...p, taluk: e.target.value }))}>
-                        <option value="">Select taluk</option>
-                        {taluks.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    ) : (
-                      <input className="form-input" value={editData.taluk || ""} onChange={e => setEditData(p => ({ ...p, taluk: e.target.value }))} />
-                    )}
-                  </div>
-                  <div>
-                    <label className="form-label">Village / Town</label>
-                    <input className="form-input" value={editData.village || ""} onChange={e => setEditData(p => ({ ...p, village: e.target.value }))} />
-                  </div>
-                  <div>
-                    <label className="form-label">State</label>
-                    <input className="form-input" value={editData.state || "Tamil Nadu"} onChange={e => setEditData(p => ({ ...p, state: e.target.value }))} />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="form-label">Full Address <span className="text-red-500">*</span></label>
-                    <textarea rows={3} className="form-input resize-none" value={editData.address || ""}
-                      onChange={e => setEditData(p => ({ ...p, address: e.target.value }))} />
-                  </div>
-                </div>
-              </fieldset>
-
-              {/* Remark */}
-              <div>
-                <label className="form-label">Remarks</label>
-                <textarea rows={2} className="form-input resize-none" value={editData.remark || ""}
-                  onChange={e => setEditData(p => ({ ...p, remark: e.target.value }))} />
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-end gap-2 px-6 py-4 border-t border-slate-100">
-              <button onClick={() => setShowEdit(false)} className="btn btn-outline text-sm">Cancel</button>
-              <button onClick={handleEditSave} disabled={saving} className="btn btn-primary text-sm">
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-                {saving ? "Saving…" : "Save Changes"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Delete Confirmation ──────────────────────────────────────────── */}
       {showDelete && (

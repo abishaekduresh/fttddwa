@@ -153,6 +153,7 @@ export async function updateMember(id: number, input: Partial<CreateMemberInput>
   if (input.photoUrl !== undefined) sanitized.photoUrl = input.photoUrl;
   if (input.aadhaarHash !== undefined) sanitized.aadhaarHash = input.aadhaarHash;
   if (input.remark !== undefined) sanitized.remark = input.remark ? sanitizeText(input.remark) : null;
+  if (input.status !== undefined) sanitized.status = input.status;
 
   return prisma.member.update({ where: { id }, data: sanitized });
 }

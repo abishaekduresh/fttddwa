@@ -25,6 +25,7 @@ export const createMemberSchema = z.object({
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   photoUrl: z.string().optional(),
   remark: z.string().optional(),
+  status: z.enum(["ACTIVE", "PENDING", "INACTIVE", "SUSPENDED", "EXPIRED", "DELETED"]).optional(),
 });
 
 export const updateMemberSchema = createMemberSchema.partial();

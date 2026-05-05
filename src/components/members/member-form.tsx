@@ -63,6 +63,7 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
       phone: defaultValues?.phone || "",
       email: defaultValues?.email || "",
       remark: defaultValues?.remark || "",
+      status: defaultValues?.status || "ACTIVE",
     },
   });
 
@@ -323,6 +324,16 @@ export function MemberForm({ defaultValues, onSubmit, loading, submitLabel = "Sa
                 placeholder="XXXXXXXXXXXX"
               />
               {errors.aadhaar && <p className="text-red-600 text-xs mt-1">{errors.aadhaar.message}</p>}
+            </div>
+            <div>
+              <label className="form-label">Member Status / நிலை</label>
+              <select className="form-input" {...register("status")}>
+                <option value="ACTIVE">Active</option>
+                <option value="PENDING">Pending</option>
+                <option value="INACTIVE">Inactive</option>
+                <option value="SUSPENDED">Suspended</option>
+                <option value="EXPIRED">Expired</option>
+              </select>
             </div>
           </div>
         </div>

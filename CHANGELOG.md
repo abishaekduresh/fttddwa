@@ -4,6 +4,13 @@ All notable changes to FTTDDWA Member Management System will be documented in th
 
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.5] — 2026-05-06
+
+### Changed
+- **Member Editing Flow** — Replaced the member edit modal on the details page with a direct redirect to a dedicated edit page. This provides a more robust and focused editing experience.
+- **Member Form Enhancement** — Added a 'Member Status' dropdown to the member form, enabling status management (Active, Inactive, Suspended, etc.) from the edit view.
+- **UI/UX Cleanup** — Removed unused modal-related states and code from the member details component.
+
 ## [2.4.3] — 2026-05-06
 
 ### Fixed
