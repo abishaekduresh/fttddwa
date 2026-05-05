@@ -4,6 +4,12 @@ All notable changes to FTTDDWA Member Management System will be documented in th
 
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.3] — 2026-05-06
+
+### Fixed
+- **Prisma Schema Relations** — Restored over 15 missing model relations in `schema.prisma`. This fixes critical runtime errors where Prisma was unable to 'include' or 'select' related data (e.g., fetching user roles or permissions) despite the build passing with type-casts.
+- **Runtime Stabilization** — Verified that the production build now correctly handles relational queries after regenerating the Prisma Client.
+
 ## [2.4.1] — 2026-05-06
 
 ### Fixed

@@ -20,7 +20,7 @@ info:
     | Auth endpoints | 5 requests / 15 min per IP |
     | All API endpoints | 100 requests / 15 min per IP |
 
-  version: "2.4.1"
+  version: "2.4.3"
   contact:
     name: FTTDDWA IT Support
     email: admin@fttddwa.org
