@@ -11,8 +11,8 @@ export interface UpdateSettingsInput {
   anniversaryTemplateId?: number | null;
   countryCode?: string;
   countryName?: string;
-  birthdayVariables?: any;
-  anniversaryVariables?: any;
+  birthdayVariables?: Record<string, string> | null;
+  anniversaryVariables?: Record<string, string> | null;
   enableExternalCron?: boolean;
   externalCronSecret?: string | null;
 }
@@ -35,7 +35,7 @@ export async function getWhatsappSettings() {
 export async function updateWhatsappSettings(input: UpdateSettingsInput) {
   return prisma.whatsappSettings.upsert({
     where: { id: 1 },
-    update: input,
-    create: { id: 1, ...input },
+    update: input as any,
+    create: { id: 1, ...input } as any,
   });
 }

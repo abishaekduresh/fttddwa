@@ -128,9 +128,9 @@ export async function getDashboardStats() {
     totalUsers,
     newMembersThisMonth: monthlyGrowth,
     recentMembers,
-    membersByDistrict: (membersByDistrict as any[]).map((d) => ({
-      district: d.district as string,
-      count: d._count._all as number,
+    membersByDistrict: (membersByDistrict as Array<{ district: string; _count: { _all: number } }>).map((d) => ({
+      district: d.district,
+      count: d._count._all,
     })),
     recentActivity,
     upcomingCelebrations,

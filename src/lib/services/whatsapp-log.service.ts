@@ -29,7 +29,7 @@ export async function getWhatsappLogs(filters: LogFilters) {
   }
 
   const [logs, total] = await Promise.all([
-    prisma.whatsappLog.findMany({
+    (prisma.whatsappLog as any).findMany({
       where,
       skip: (page - 1) * pageSize,
       take: pageSize,

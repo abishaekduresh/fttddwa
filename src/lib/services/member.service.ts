@@ -70,14 +70,14 @@ export async function createMember(input: CreateMemberInput) {
   const setting = await prisma.associationSetting.findUnique({ where: { id: 1 }, select: { idCardSettings: true } });
   let validityYears = 2;
   if (setting?.idCardSettings) {
-    const cs = (typeof setting.idCardSettings === "string" ? JSON.parse(setting.idCardSettings) : setting.idCardSettings) as any;
+    const cs = (typeof setting.idCardSettings === "string" ? JSON.parse(setting.idCardSettings) : setting.idCardSettings) as Record<string, unknown>;
     validityYears = Number(cs.validityYears) || 2;
   }
   const joinedAt = new Date();
   const validUntil = new Date(joinedAt.getFullYear() + validityYears, 11, 31, 23, 59, 59);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (prisma.member.create as any)({
+  return prisma.member.create({
     data: {
       ...sanitized,
       membershipId,
@@ -93,7 +93,7 @@ export async function getMembers(filters: MemberFilters) {
   const { search, district, taluk, status, page = 1, pageSize = 20 } = filters;
 
   const whereObject = {
-    status: (status && status !== MemberStatus.DELETED) ? (status as any) : { not: MemberStatus.DELETED },
+    status: (status && status !== MemberStatus.DELETED) ? (status as MemberStatus) : { not: MemberStatus.DELETED },
     ...(district ? { district } : {}),
     ...(taluk ? { taluk } : {}),
     ...(search ? {
@@ -109,13 +109,13 @@ export async function getMembers(filters: MemberFilters) {
   };
 
   const [members, total] = await Promise.all([
-    prisma.member.findMany({
+    (prisma.member as any).findMany({
       where: whereObject,
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: { createdAt: "desc" },
       include: {
-        createdBy: { select: { name: true, email: true } },
+        createdBy: { select: { name: true } },
       },
     }),
     prisma.member.count({ where: whereObject }),
@@ -125,7 +125,7 @@ export async function getMembers(filters: MemberFilters) {
 }
 
 export async function getMemberById(id: number) {
-  return prisma.member.findFirst({
+  return (prisma.member as any).findFirst({
     where: { id, status: { not: MemberStatus.DELETED } },
     include: {
       createdBy: { select: { name: true, email: true } },
@@ -191,9 +191,9 @@ export async function getMemberStats() {
 
   return {
     total,
-    active: byStatus.find((s: any) => s.status === "ACTIVE")?._count._all || 0,
-    inactive: byStatus.find((s: any) => s.status === "INACTIVE")?._count._all || 0,
-    byDistrict: byDistrict.map((d: any) => ({ district: d.district, count: d._count._all })),
+    active: byStatus.find((s) => s.status === "ACTIVE")?._count._all || 0,
+    inactive: byStatus.find((s) => s.status === "INACTIVE")?._count._all || 0,
+    byDistrict: byDistrict.map((d) => ({ district: d.district, count: d._count._all })),
     recentCount,
   };
 }
@@ -205,7 +205,7 @@ export async function getDistinctDistricts(): Promise<string[]> {
     select: { district: true },
     orderBy: { district: "asc" },
   });
-  return result.map((r: any) => r.district);
+  return result.map((r) => r.district);
 }
 
 export async function getDistinctTaluks(district?: string): Promise<string[]> {
@@ -218,7 +218,7 @@ export async function getDistinctTaluks(district?: string): Promise<string[]> {
     select: { taluk: true },
     orderBy: { taluk: "asc" },
   });
-  return result.map((r: any) => r.taluk);
+  return result.map((r) => r.taluk);
 }
 
 // ─── Public ID Card Lookups ────────────────────────────────────────────────────
@@ -273,15 +273,14 @@ export async function getMemberCardByUuid(uuid: string): Promise<MemberCardRow |
       district: true, taluk: true, village: true, address: true, state: true,
       phone: true, email: true, photoUrl: true, status: true,
       industry: true, validUntil: true,
-      dateOfBirth: true, weddingDate: true, joinedAt: true,
-    } as any,
+    },
   });
   return row as MemberCardRow | null;
 }
 
 export async function extendMemberValidity(id: number, years?: number) {
   const [member, setting] = await Promise.all([
-    prisma.member.findUnique({ where: { id }, select: { validUntil: true } } as any),
+    prisma.member.findUnique({ where: { id }, select: { validUntil: true } }),
     prisma.associationSetting.findUnique({ where: { id: 1 }, select: { idCardSettings: true } })
   ]);
 
@@ -289,23 +288,23 @@ export async function extendMemberValidity(id: number, years?: number) {
 
   let validityYears = years;
   if (!validityYears) {
-    const cs = (typeof setting?.idCardSettings === "string" ? JSON.parse(setting.idCardSettings) : setting?.idCardSettings) as any;
+    const cs = (typeof setting?.idCardSettings === "string" ? JSON.parse(setting.idCardSettings) : setting?.idCardSettings) as Record<string, unknown>;
     validityYears = Number(cs?.validityYears) || 2;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const m = member as any;
-  const baseDate = (m.validUntil && m.validUntil > new Date())
-    ? new Date(m.validUntil)
+  const m = member as Record<string, unknown>;
+  const baseDate = (m.validUntil && (m.validUntil as any) > new Date())
+    ? new Date(m.validUntil as any)
     : new Date();
 
   const newValidUntil = new Date(baseDate.getFullYear() + validityYears, 11, 31, 23, 59, 59, 999);
 
-  return prisma.member.update({
+  return (prisma.member as any).update({
     where: { id },
     data: { 
       validUntil: newValidUntil,
       status: MemberStatus.ACTIVE
-    } as any
+    }
   });
 }

@@ -34,7 +34,7 @@ export function withAuth(handler: AuthRouteHandler, requiredPermission?: string)
 }
 
 async function checkPermission(roleId: number, permissionName: string): Promise<boolean> {
-  const rolePermission = await prisma.rolePermission.findFirst({
+  const rolePermission = await (prisma.rolePermission as any).findFirst({
     where: {
       roleId,
       permission: { name: permissionName },

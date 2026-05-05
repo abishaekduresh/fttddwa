@@ -38,7 +38,7 @@ export async function loginUser(
   userAgent?: string
 ): Promise<LoginResult> {
   // Single query: user + role + permissions
-  const user = await prisma.user.findUnique({
+  const user = await (prisma.user as any).findUnique({
     where: { email: email.toLowerCase() },
     include: userWithRoleInclude,
   });
@@ -99,7 +99,7 @@ export async function loginUser(
     data: { failedLoginCount: 0, lockedUntil: null, lastLoginAt: new Date() },
   });
 
-  const permissions = user.role?.permissions?.map((rp) => rp.permission.name) ?? [];
+  const permissions = user.role?.permissions?.map((rp: any) => rp.permission.name) ?? [];
 
   const accessToken = await signAccessToken({
     userId: user.id,
@@ -155,7 +155,7 @@ export async function refreshTokens(
   if (!payload) return null;
 
   // Single query: session + user + role + permissions
-  const session = await prisma.session.findUnique({
+  const session = await (prisma.session as any).findUnique({
     where: { refreshToken },
     include: { user: { include: userWithRoleInclude } },
   });
@@ -165,7 +165,7 @@ export async function refreshTokens(
   const { user } = session;
   if (!user || !user.isActive) return null;
 
-  const permissions = user.role?.permissions?.map((rp) => rp.permission.name) ?? [];
+  const permissions = user.role?.permissions?.map((rp: any) => rp.permission.name) ?? [];
 
   const newAccessToken = await signAccessToken({
     userId: user.id,
@@ -198,7 +198,7 @@ export async function logoutUser(refreshToken: string): Promise<void> {
 
 export async function getUserById(userId: number) {
   // Single query: user + role + permissions (used for /api/auth/me fallback only)
-  return prisma.user.findUnique({
+  return (prisma.user as any).findUnique({
     where: { id: userId },
     select: {
       id: true,

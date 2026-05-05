@@ -316,7 +316,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
   }
 
   // 2. Load idCardSettings safely
-  let cs: Record<string, any> = {};
+  let cs: Record<string, unknown> = {};
   try {
     const rawSettings = setting?.idCardSettings;
     if (rawSettings) {
@@ -325,7 +325,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
       } else if (Buffer.isBuffer(rawSettings)) {
         cs = JSON.parse(rawSettings.toString("utf-8"));
       } else if (typeof rawSettings === "object") {
-        cs = rawSettings as Record<string, any>;
+        cs = rawSettings as Record<string, unknown>;
       }
     }
   } catch (err) {
@@ -419,7 +419,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
       "member.membershipId":      memberRow.membershipId,
       "membershipId":             memberRow.membershipId,
       "member.location":          [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", "),
-      "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (cs.validityYears || 2))}`,
+      "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (Number(cs.validityYears) || 2))}`,
       "member.email":             memberRow.email || "",
       "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth),
       "member.dob":               fmtDOB(memberRow.dateOfBirth),
@@ -467,7 +467,7 @@ export async function generateIdCardPdf(memberUuid: string): Promise<Buffer | nu
     "member.membershipId":      memberRow.membershipId,
     "membershipId":             memberRow.membershipId,
     "member.location":          [memberRow.village, memberRow.taluk, memberRow.district].filter(Boolean).join(", "),
-    "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (cs.validityYears || 2))}`,
+    "member.validity":          `${startYr} – ${memberRow.validUntil ? new Date(memberRow.validUntil).getFullYear() : (startYr + (Number(cs.validityYears) || 2))}`,
     "member.email":             memberRow.email || "",
     "member.dateOfBirth":       fmtDOB(memberRow.dateOfBirth),
     "member.dob":               fmtDOB(memberRow.dateOfBirth),

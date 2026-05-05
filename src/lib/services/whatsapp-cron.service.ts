@@ -93,7 +93,7 @@ export async function runWhatsAppCron(triggeredBy: "scheduler" | "manual" | "adm
   // Helper: resolve variables from member data using mapping.
   // Always returns an entry for every templateVar slot — uses mapped member field
   // value when configured, or empty string as fallback so field_N is still sent.
-  const resolveVariables = (member: any, mapping: any, templateVars: string[]): Record<string, string> => {
+  const resolveVariables = (member: Record<string, unknown>, mapping: Record<string, string> | null, templateVars: string[]): Record<string, string> => {
     if (!templateVars.length) return {};
     const resolved: Record<string, string> = {};
     templateVars.forEach(varName => {
@@ -176,7 +176,7 @@ export async function runWhatsAppCron(triggeredBy: "scheduler" | "manual" | "adm
             continue;
           }
 
-          const variables = resolveVariables(member, settings.birthdayVariables, (template.variables as string[]) || []);
+          const variables = resolveVariables(member, settings.birthdayVariables as any, (template.variables as string[]) || []);
           await enqueue(member.id, phone, "birthday", template.templateName, template.language, variables);
           result.enqueued++;
         } catch (err) {
@@ -217,7 +217,7 @@ export async function runWhatsAppCron(triggeredBy: "scheduler" | "manual" | "adm
             continue;
           }
 
-          const variables = resolveVariables(member, settings.anniversaryVariables, (template.variables as string[]) || []);
+          const variables = resolveVariables(member, settings.anniversaryVariables as any, (template.variables as string[]) || []);
           await enqueue(member.id, phone, "anniversary", template.templateName, template.language, variables);
           result.enqueued++;
         } catch (err) {
@@ -232,7 +232,7 @@ export async function runWhatsAppCron(triggeredBy: "scheduler" | "manual" | "adm
     const now = new Date();
     const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
-    const activeEvents = await prisma.whatsappEvent.findMany({
+    const activeEvents = await (prisma.whatsappEvent as any).findMany({
       where: { isActive: true, scheduleTime: currentTime },
       include: { template: true },
     });

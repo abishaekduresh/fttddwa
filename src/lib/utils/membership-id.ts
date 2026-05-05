@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 
 import { DISTRICT_RTO_CODES } from "@/constants/districts";
 
-export async function generateMembershipId(district?: string, taluk?: string): Promise<string> {
+export async function generateMembershipId(district?: string, _taluk?: string): Promise<string> {
   // Get prefix from district RTO code
   const districtCode = district ? DISTRICT_RTO_CODES[district] : null;
   const prefix = districtCode || process.env.MEMBERSHIP_ID_PREFIX || "FTTD";

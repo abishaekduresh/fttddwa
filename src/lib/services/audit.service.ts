@@ -50,12 +50,12 @@ export async function getAuditLogs(params: {
   };
 
   const [logs, total] = await Promise.all([
-    prisma.auditLog.findMany({
+    (prisma.auditLog as any).findMany({
       where,
       skip: (page - 1) * pageSize,
       take: pageSize,
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { name: true, email: true } } },
+      include: { user: { select: { name: true, email: true } } } as any,
     }),
     prisma.auditLog.count({ where }),
   ]);

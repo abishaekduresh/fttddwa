@@ -14,7 +14,7 @@ const CATEGORY_MAP: Record<string, WaTemplateCategory> = {
 };
 
 export async function getWhatsappTemplates(vendorId?: number) {
-  return prisma.whatsappTemplate.findMany({
+  return (prisma.whatsappTemplate as any).findMany({
     where: { 
       ...(vendorId ? { vendorId } : {}),
       status: { not: "DELETED" }

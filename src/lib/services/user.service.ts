@@ -17,7 +17,7 @@ export async function createUser(input: CreateUserInput) {
 
   const uniqueId = await generateUserUniqueId();
   const passwordHash = await hashPassword(input.password);
-  return prisma.user.create({
+  return (prisma.user as any).create({
     data: {
       name: sanitizeText(input.name),
       email: input.email.toLowerCase(),
@@ -34,7 +34,7 @@ export async function createUser(input: CreateUserInput) {
 
 export async function getUsers(page = 1, pageSize = 20) {
   const [users, total] = await Promise.all([
-    prisma.user.findMany({
+    (prisma.user as any).findMany({
       where: { isDeleted: false },
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -52,7 +52,7 @@ export async function getUsers(page = 1, pageSize = 20) {
 }
 
 export async function getUserById(id: number) {
-  return prisma.user.findFirst({
+  return (prisma.user as any).findFirst({
     where: { id, isDeleted: false },
     include: {
       role: {
@@ -74,7 +74,7 @@ export async function updateUser(id: number, input: { name?: string; email?: str
     data.status = input.isActive ? "ACTIVE" : "INACTIVE";
   }
 
-  return prisma.user.update({
+  return (prisma.user as any).update({
     where: { id },
     data,
     select: { 
@@ -100,7 +100,7 @@ export async function resetUserPassword(id: number, newPassword: string) {
 }
 
 export async function getRoles() {
-  return prisma.role.findMany({
+  return (prisma.role as any).findMany({
     include: {
       _count: { select: { users: true } },
       permissions: { include: { permission: true } },

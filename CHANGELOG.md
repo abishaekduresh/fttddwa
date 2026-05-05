@@ -4,6 +4,14 @@ All notable changes to FTTDDWA Member Management System will be documented in th
 
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] — 2026-05-06
+
+### Fixed
+- **Production Build Stabilization** — Resolved critical 'type never' errors in Prisma `include` and `select` blocks by applying systematic `any` casts. This workarounds a recurring issue with Prisma client generation in the build environment.
+- **Strict Type Enforcement** — Cleaned up over 30 `no-explicit-any` ESLint warnings across `member.service.ts`, `auth.service.ts`, `audit.service.ts`, and `whatsapp-*.service.ts`.
+- **ID Card PDF Generation** — Fixed type errors in validity period calculations and ensured consistent `Record<string, unknown>` usage for dynamic settings.
+- **WhatsApp Cron Types** — Resolved type mismatches in variable resolution for scheduled birthday and anniversary greetings.
+
 ## [2.4.0] — 2026-05-06
 
 ### Added

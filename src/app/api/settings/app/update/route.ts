@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest) {
     const roleId = req.headers.get("x-user-role-id");
     const isSuperAdmin = req.headers.get("x-user-role") === "SUPER_ADMIN";
     if (!isSuperAdmin && roleId) {
-      const roleData = await prisma.role.findUnique({
+      const roleData = await (prisma.role as any).findFirst({
         where: { id: parseInt(roleId) },
         include: { permissions: { include: { permission: true } } },
       });

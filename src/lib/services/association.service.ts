@@ -23,7 +23,7 @@ export async function getAssociationSettings() {
 }
 
 export async function updateAssociationSettings(input: AssociationSettingsInput) {
-  const sanitized: Record<string, any> = {};
+  const sanitized: Record<string, unknown> = {};
 
   // Sanitize all text fields
   Object.entries(input).forEach(([key, value]) => {

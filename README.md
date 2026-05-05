@@ -4,7 +4,7 @@
 >
 > A production-ready SaaS web application for managing member data digitally — built with Next.js 15, Prisma, MySQL, and JWT-based RBAC.
 >
-> **Version 2.4.0** | Deployable on VPS + aaPanel / Coolify / Docker
+> **Version 2.4.1** | Deployable on VPS + aaPanel / Coolify / Docker
 
 ---
 

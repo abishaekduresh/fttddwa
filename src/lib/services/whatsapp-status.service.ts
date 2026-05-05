@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { createVendor } from "@/lib/whatsapp/vendors/vendor.factory";
 
 interface RawLog {
@@ -73,10 +74,10 @@ export async function syncWhatsAppMessageStatuses() {
         isActive:         Boolean(log.vIsActive),
         rateLimitPerSec:  log.vRateLimitPerSec,
         retryLimit:       log.vRetryLimit,
-        walletBalance:    { toNumber: () => parseFloat(log.vWalletBalance) } as any,
+        walletBalance:    new Prisma.Decimal(log.vWalletBalance),
       };
 
-      const vendorInstance = createVendor(vendorRow as any);
+      const vendorInstance = createVendor(vendorRow as import("../whatsapp/vendors/vendor.factory").VendorRow);
       if (typeof vendorInstance.getMessageStatus !== "function") continue;
 
       const result = await vendorInstance.getMessageStatus(log.vendorMessageId);
